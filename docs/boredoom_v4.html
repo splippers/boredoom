@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BoreDOOM! — v4.0 Concept &amp; Design Document</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+  --ink:     #060c18;
+  --deep:    #0b1426;
+  --surface: #111e33;
+  --card:    #16253d;
+  --border:  #1e3454;
+  --border2: #2a4a70;
+  --cyan:    #00d4ff;
+  --cyan2:   #00a8cc;
+  --gold:    #fbbf24;
+  --gold2:   #f59e0b;
+  --green:   #22c55e;
+  --green2:  #16a34a;
+  --orange:  #f97316;
+  --purple:  #a855f7;
+  --purple2: #7c3aed;
+  --pink:    #ec4899;
+  --red:     #ef4444;
+  --teal:    #14b8a6;
+  --lime:    #84cc16;
+  --text:    #e2e8f0;
+  --text2:   #94a3b8;
+  --text3:   #64748b;
+  --mono:    'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@page { size: A4; margin: 0; }
+
+html { font-size: 12.5px; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: 'Exo 2', 'Segoe UI', sans-serif;
+  line-height: 1.65;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ═══════════════════════════════ PAGE SYSTEM ═══ */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 14mm 15mm 18mm;
+  position: relative;
+  page-break-after: always;
+  overflow: hidden;
+}
+.page:last-child { page-break-after: auto; }
+
+/* ═══════════════════════════════ TYPOGRAPHY ═══ */
+.orb  { font-family: 'Orbitron', monospace; }
+.mono { font-family: var(--mono); }
+
+h1 {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px; font-weight: 900;
+  color: var(--cyan);
+  letter-spacing: 1.5px;
+  margin-bottom: 14px;
+  line-height: 1.2;
+}
+h2 {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+h3 {
+  font-size: 12px; font-weight: 700;
+  color: var(--cyan);
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+p   { margin-bottom: 9px; font-size: 12px; line-height: 1.7; }
+ul, ol { margin: 0 0 9px 17px; }
+li  { margin-bottom: 3px; font-size: 12px; line-height: 1.6; }
+code { font-family: var(--mono); font-size: 10.5px; background: rgba(0,212,255,0.1); padding: 1px 4px; border-radius: 3px; color: var(--cyan); }
+
+.section-eyebrow {
+  font-size: 9px; font-weight: 700; letter-spacing: 5px;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 6px;
+}
+
+/* ═══════════════════════════════ LAYOUT ═══ */
+.two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.four-col  { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+
+/* ═══════════════════════════════ DECORATIVE ═══ */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border2), transparent);
+  margin: 14px 0;
+}
+.h-rule {
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple), transparent);
+  margin-bottom: 14px;
+  border-radius: 2px;
+}
+
+/* ═══════════════════════════════ COMPONENTS ═══ */
+
+/* Card */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* Callout */
+.callout {
+  background: linear-gradient(135deg, rgba(0,212,255,0.07), rgba(168,85,247,0.07));
+  border: 1px solid rgba(0,212,255,0.25);
+  border-radius: 10px;
+  padding: 13px 16px;
+  margin: 12px 0;
+}
+.callout.warn {
+  background: linear-gradient(135deg, rgba(251,191,36,0.08), rgba(249,115,22,0.08));
+  border-color: rgba(251,191,36,0.3);
+}
+.callout.danger {
+  background: rgba(239,68,68,0.07);
+  border-color: rgba(239,68,68,0.3);
+}
+.callout-title { font-weight: 800; font-size: 12px; margin-bottom: 5px; color: var(--cyan); }
+.callout.warn .callout-title { color: var(--gold); }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 12px; }
+th {
+  background: var(--border); color: var(--text2);
+  text-transform: uppercase; letter-spacing: 1px;
+  font-size: 9px; padding: 7px 10px; text-align: left;
+  font-weight: 700;
+}
+td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+/* Chip */
+.chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.chip {
+  border: 1px solid var(--border2); border-radius: 20px;
+  padding: 1px 9px; font-size: 10px; color: var(--text2);
+  background: rgba(255,255,255,0.04);
+}
+.chip.hi { border-color: var(--cyan); color: var(--cyan); background: rgba(0,212,255,0.08); }
+.chip.gold { border-color: var(--gold); color: var(--gold); background: rgba(251,191,36,0.08); }
+.chip.green { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.08); }
+
+/* Pull-quote */
+.pull {
+  border-left: 3px solid var(--cyan);
+  padding: 8px 14px;
+  font-size: 14px; font-style: italic; font-weight: 300;
+  color: var(--text2);
+  margin: 14px 0;
+  background: rgba(0,212,255,0.04);
+}
+
+/* Status pill */
+.status {
+  display: inline-block;
+  font-size: 9px; font-weight: 800; letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 2px 8px; border-radius: 20px;
+  vertical-align: middle;
+}
+.status.concept  { background: rgba(168,85,247,0.2); color: var(--purple);  border: 1px solid rgba(168,85,247,0.4); }
+.status.indev    { background: rgba(251,191,36,0.2);  color: var(--gold);    border: 1px solid rgba(251,191,36,0.4); }
+.status.wip      { background: rgba(249,115,22,0.2);  color: var(--orange);  border: 1px solid rgba(249,115,22,0.4); }
+
+/* Grade badge */
+.grade {
+  font-family: 'Orbitron', monospace;
+  font-size: 20px; font-weight: 900;
+  display: inline-block; width: 36px; text-align: center;
+}
+.g-sp { color: #ff00ff; text-shadow: 0 0 12px #ff00ff88; }
+.g-s  { color: var(--gold);   text-shadow: 0 0 12px #fbbf2488; }
+.g-a  { color: var(--green);  text-shadow: 0 0 12px #22c55e88; }
+.g-b  { color: var(--cyan);   text-shadow: 0 0 12px #00d4ff88; }
+.g-c  { color: var(--orange); text-shadow: 0 0 12px #f9731688; }
+.g-d  { color: var(--red);    text-shadow: 0 0 12px #ef444488; }
+
+/* Page footer */
+.pfoot {
+  position: absolute; bottom: 12mm; left: 15mm; right: 15mm;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 9px; color: var(--text3);
+  border-top: 1px solid var(--border);
+  padding-top: 5px;
+}
+.pfoot-logo { font-family: 'Orbitron', monospace; font-size: 10px; color: var(--border2); font-weight: 700; }
+
+/* ═══════════════════════════════ MODE CARDS ═══ */
+.mode-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 14px 10px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.mode-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--mc, var(--cyan));
+}
+.mode-card-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.mode-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+}
+.mode-title { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; color: var(--mc, var(--cyan)); line-height: 1.2; }
+.mode-sub   { font-size: 10px; color: var(--text3); font-style: italic; margin-top: 1px; }
+.mode-badge {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 9px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: var(--mc, var(--cyan));
+  color: var(--ink); padding: 2px 7px; border-radius: 20px;
+}
+.mode-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.mode-col-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text3); margin-bottom: 4px; }
+
+/* ═══════════════════════════════ COVER ═══ */
+.cover-page {
+  background: radial-gradient(ellipse at 20% 30%, #0c1f45 0%, #060c18 65%);
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding: 14mm 15mm;
+  min-height: 297mm;
+}
+
+/* ═══════════════════════════════ PROGRESS BAR ═══ */
+.prog-wrap { background: var(--border); border-radius: 4px; height: 5px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--fill-a, var(--cyan)), var(--fill-b, var(--purple))); }
+
+/* ═══════════════════════════════ STAT BLOCK ═══ */
+.stat-block { text-align: center; }
+.stat-num { font-family: 'Orbitron', monospace; font-size: 28px; font-weight: 900; line-height: 1; }
+.stat-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--text3); margin-top: 3px; }
+
+/* ═══════════════════════════════ LOOP DIAGRAM ═══ */
+.loop-node {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px; text-align: center;
+  font-size: 11px; font-weight: 600;
+}
+.loop-arrow { text-align: center; color: var(--cyan); font-size: 18px; line-height: 1; }
+
+/* ═══════════════════════════════ COMPETITOR CHART ═══ */
+.comp-dot {
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 50%; vertical-align: middle; margin-right: 4px;
+}
+
+/* ═══════════════════════════════ BIG QUOTE ═══ */
+.big-quote {
+  font-size: 18px; font-weight: 300; font-style: italic;
+  line-height: 1.5; color: var(--text2);
+  text-align: center; padding: 20px 10px;
+}
+.big-quote strong { color: var(--cyan); font-weight: 700; font-style: normal; }
+
+/* Neon glow text */
+.glow-cyan   { color: var(--cyan);   text-shadow: 0 0 20px rgba(0,212,255,0.6); }
+.glow-gold   { color: var(--gold);   text-shadow: 0 0 20px rgba(251,191,36,0.6); }
+.glow-purple { color: var(--purple); text-shadow: 0 0 20px rgba(168,85,247,0.6); }
+.glow-green  { color: var(--green);  text-shadow: 0 0 20px rgba(34,197,94,0.6); }
+
+/* Accent number */
+.big-n {
+  font-family: 'Orbitron', monospace; font-size: 42px; font-weight: 900;
+  line-height: 1; display: block;
+}
+
+/* Mockup */
+.mockup {
+  background: #060c18;
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.mockup-bar {
+  background: var(--surface); border-radius: 6px; padding: 5px 10px;
+  margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ PAGE 1: COVER ══════ -->
+<div class="page cover-page">
+
+  <!-- Top bar -->
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="orb" style="font-size:10px; color:var(--border2); letter-spacing:3px;">SPLIPPERS.COM</div>
+    <div style="font-size:9px; color:var(--text3); letter-spacing:2px; text-transform:uppercase;">Concept &amp; Design Document · v4.0 · May 2026</div>
+    <div class="status concept">Pre-Development</div>
+  </div>
+
+  <!-- Hero -->
+  <div style="text-align:center; padding: 20px 0 10px;">
+    <div style="font-family:'Orbitron',monospace; font-size:68px; font-weight:900; letter-spacing:6px; line-height:0.95;
+         background: linear-gradient(160deg, #ffffff 0%, var(--cyan) 35%, var(--purple) 70%, var(--pink) 100%);
+         -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+      BoreDOOM
+    </div>
+    <div style="font-family:'Orbitron',monospace; font-size:56px; font-weight:900; color:var(--gold);
+         text-shadow: 0 0 40px rgba(251,191,36,0.5); letter-spacing:10px; margin-top:-4px;">
+      !
+    </div>
+
+    <div style="height:2px; background:linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent); margin: 16px auto; max-width:420px;"></div>
+
+    <div style="font-size:17px; font-weight:300; color:var(--text2); letter-spacing:3px; max-width:520px; margin:0 auto 8px; line-height:1.5;">
+      Housework. Gamified.<br>
+      <span style="color:var(--cyan); font-weight:600;">Meta Quest 3 AR.</span>
+    </div>
+    <div style="font-size:11px; color:var(--text3); letter-spacing:3px; text-transform:uppercase;">
+      Passthrough · Spatial Mesh · Real Rooms · Real Satisfaction
+    </div>
+  </div>
+
+  <!-- Conceptual UI Mockup -->
+  <div style="margin: 0 auto; max-width: 460px;">
+    <div style="font-size:9px; color:var(--text3); letter-spacing:3px; text-transform:uppercase; text-align:center; margin-bottom:8px;">CONCEPTUAL AR HUD MOCKUP</div>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <span style="color:var(--cyan);">▓▓▓▓▓▓▓▓░░░</span>
+        <span style="color:var(--gold); font-family:'Orbitron',monospace; font-size:11px;">67%</span>
+        <span style="color:var(--green);">GRADE: <strong>B</strong></span>
+        <span style="color:var(--text3);">06:42</span>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 80px; gap:10px;">
+        <div style="background:rgba(0,212,255,0.04); border:1px solid var(--border); border-radius:8px; padding:8px; line-height:1.8;">
+<span style="color:var(--text3);">// COVERAGE MAP (25cm grid)</span>
+<span style="color:var(--cyan);">▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓</span>
+<span style="color:var(--cyan);">▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓</span>
+<span style="color:var(--text3);">▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒</span>
+<span style="color:var(--text3);">▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒</span>
+<span style="color:var(--purple); font-size:9px;">▸▸▸  ghost path</span>
+        </div>
+        <div style="background:rgba(168,85,247,0.05); border:1px solid var(--border); border-radius:8px; padding:8px;">
+          <div style="font-size:9px; color:var(--text3); margin-bottom:5px;">DOLLHOUSE</div>
+          <div style="font-size:16px; text-align:center; line-height:1.8;">
+🟥<br>🟡<br>🟢
+          </div>
+          <div style="font-size:8px; color:var(--text3); text-align:center; margin-top:3px;">1:20 live</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="four-col" style="margin-top:16px;">
+    <div class="card" style="text-align:center; padding:10px;">
+      <div class="stat-num glow-cyan">11</div>
+      <div class="stat-lbl">Planned Modes</div>
+    </div>
+    <div class="card" style="text-align:center; padding:10px;">
+      <div class="stat-num glow-gold">3D</div>
+      <div class="stat-lbl">Live Dollhouse</div>
+    </div>
+    <div class="card" style="text-align:center; padding:10px;">
+      <div class="stat-num glow-purple">LAN</div>
+      <div class="stat-lbl">Battle Mode</div>
+    </div>
+    <div class="card" style="text-align:center; padding:10px;">
+      <div class="stat-num" style="color:var(--pink); text-shadow:0 0 20px rgba(236,72,153,0.6);">S+</div>
+      <div class="stat-lbl">Top Grade</div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+    <div style="font-size:10px; color:var(--text3);">Concept status — C# architecture in active AI agent sprint</div>
+    <div style="font-size:10px; color:var(--text3);">git@github.com:splippers/boredoom</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 2: CONCEPT ═════ -->
+<div class="page" style="background: var(--deep);">
+
+  <!-- Sidebar accent -->
+  <div style="position:absolute; top:0; right:0; width:3px; height:100%; background:linear-gradient(180deg, var(--cyan), var(--purple), transparent);"></div>
+
+  <div class="section-eyebrow">The Concept</div>
+  <h1>One sentence.<br>One gap in the market.</h1>
+  <div class="h-rule"></div>
+
+  <div class="big-quote" style="margin: 0 0 16px;">
+    BoreDOOM! will turn <strong>hoovering your house</strong> into an AR sport — complete with personal bests, live rivalries, and share cards people actually post.
+  </div>
+
+  <div class="callout warn" style="margin-bottom:16px;">
+    <div class="callout-title">⚠ Planning Stage</div>
+    BoreDOOM! is in pre-development. This document describes intended design. The C# codebase is being prototyped by an AI agent sprint team; no playable Quest 3 build exists yet. All screenshots shown are conceptual mockups.
+  </div>
+
+  <div class="two-col" style="margin-bottom:14px;">
+    <div>
+      <h2>The Problem We're Solving</h2>
+      <p>Everyone with a Meta Quest 3 already exercises in VR. Beat Saber, Supernatural, FitXR — these games prove that people will do physical activity if it's gamified. But those games require dedicated time and setup.</p>
+      <p>Housework is <em>already happening</em>. You're already moving through space with a tool in your hand. BoreDOOM! wants to intercept that behaviour and turn it into something you look forward to.</p>
+    </div>
+    <div>
+      <h2>The Core Insight</h2>
+      <p>The spatial understanding capabilities of Meta Quest 3 — passthrough, room scanning, mesh tracking — were built for exactly this kind of real-world interaction. No other game has pointed them at the home and said: <em>this is the level.</em></p>
+      <p>The app doesn't need the user to go anywhere. The venue is already theirs.</p>
+    </div>
+  </div>
+
+  <h2>The Core Loop</h2>
+  <div style="display:grid; grid-template-columns: repeat(5, 1fr) ; gap:6px; margin-bottom:14px; align-items:center;">
+    <div class="loop-node" style="border-color:var(--cyan);">
+      <div style="color:var(--cyan); font-size:18px; margin-bottom:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div style="font-size:10px; font-weight:700;">Put on<br>Quest 3</div>
+    </div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node" style="border-color:var(--purple);">
+      <div style="color:var(--purple); font-size:18px; margin-bottom:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div style="font-size:10px; font-weight:700;">Do the<br>Chore</div>
+    </div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node" style="border-color:var(--gold);">
+      <div style="color:var(--gold); font-size:18px; margin-bottom:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div style="font-size:10px; font-weight:700;">Score +<br>Grade</div>
+    </div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node" style="border-color:var(--pink);">
+      <div style="color:var(--pink); font-size:18px; margin-bottom:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </div>
+      <div style="font-size:10px; font-weight:700;">Share<br>Card</div>
+    </div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node" style="border-color:var(--green); grid-column: span 1;">
+      <div style="color:var(--green); font-size:18px; margin-bottom:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <div style="font-size:10px; font-weight:700;">Beat<br>Ghost</div>
+    </div>
+  </div>
+
+  <h2>Why Now? Why Quest 3?</h2>
+  <div class="two-col">
+    <ul>
+      <li><strong>Full colour passthrough</strong> — earlier headsets had greyscale only; Quest 3 makes the real room beautiful inside the HMD</li>
+      <li><strong>Spatial mesh quality</strong> — granular enough to track a 25cm coverage grid across an entire floor plan</li>
+      <li><strong>Scene API maturity</strong> — OVRSceneRoom/OVRSceneObject are stable enough to build on without hacks</li>
+    </ul>
+    <ul>
+      <li><strong>Install base</strong> — Quest 3 shipped 3M+ units in 2024; the addressable market exists today</li>
+      <li><strong>No direct competition</strong> — nobody has built a chore-gamification AR title on any platform</li>
+      <li><strong>Share-card culture</strong> — the app store era created users who share game screenshots reflexively</li>
+    </ul>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>2 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 3: DOLLHOUSE ══ -->
+<div class="page">
+  <div style="position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg, var(--purple), var(--pink), var(--cyan));"></div>
+
+  <div class="section-eyebrow" style="margin-top:6px;">Signature Feature</div>
+  <h1>The 3D Dollhouse</h1>
+  <div class="h-rule" style="background:linear-gradient(90deg, var(--purple), var(--pink), transparent);"></div>
+
+  <div class="two-col" style="margin-bottom:16px;">
+    <div>
+      <p>The dollhouse is intended to be the image that defines BoreDOOM! It would work like this: the Meta Scene API provides a floor plan and room boundaries; BoreDOOM! would construct a 1:20 scale miniature of the player's actual home and render it in a corner of the passthrough view — right there, floating in the air, while they hoover around it.</p>
+      <p>As each room's coverage rises, its miniature counterpart changes colour in real-time: deep red → amber → green → cyan sparkle at full Pristine. The effect is intended to feel like watching a city light up at night — except it's your house, and you're the one turning on the lights.</p>
+      <div class="callout">
+        <div class="callout-title">The "Aha" Moment</div>
+        We expect the first time a player looks down and sees their own hallway rendered in miniature — and watches it turn green as they pass through it — will be the moment they understand why this game exists.
+      </div>
+    </div>
+    <div>
+      <!-- Dollhouse mockup diagram -->
+      <div style="border:1px solid var(--border2); border-radius:12px; background:var(--card); padding:14px; font-size:11px;">
+        <div style="font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">Live Dollhouse State Transitions</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:6px; background:rgba(239,68,68,0.3); border:1px solid #ef4444; display:flex; align-items:center; justify-content:center; font-size:16px;">🔥</div>
+            <div>
+              <div style="font-weight:700; color:#ef4444; font-size:11px;">CHAOTIC — 0–25% clean</div>
+              <div style="color:var(--text3); font-size:10px;">Dark, grungy shader. Fire particle effects.</div>
+            </div>
+          </div>
+          <div style="text-align:center; color:var(--border2);">↓ 0.8s animated transition</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:6px; background:rgba(251,191,36,0.2); border:1px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:16px;">🟡</div>
+            <div>
+              <div style="font-weight:700; color:var(--gold); font-size:11px;">IN PROGRESS — 25–75%</div>
+              <div style="color:var(--text3); font-size:10px;">Amber mid-tone. Dirt gradually clearing.</div>
+            </div>
+          </div>
+          <div style="text-align:center; color:var(--border2);">↓ 0.8s animated transition</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:6px; background:rgba(34,197,94,0.2); border:1px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:16px;">✅</div>
+            <div>
+              <div style="font-weight:700; color:var(--green); font-size:11px;">CLEAN — 75–95%</div>
+              <div style="color:var(--text3); font-size:10px;">Bright green, smooth lerp animation.</div>
+            </div>
+          </div>
+          <div style="text-align:center; color:var(--border2);">↓ 0.8s animated transition</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:6px; background:rgba(0,212,255,0.2); border:1px solid var(--cyan); display:flex; align-items:center; justify-content:center; font-size:16px;">✨</div>
+            <div>
+              <div style="font-weight:700; color:var(--cyan); font-size:11px;">PRISTINE — 95%+</div>
+              <div style="color:var(--text3); font-size:10px;">Cyan sparkle shader. Triggers share card.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Planned Technical Architecture</h2>
+  <div class="two-col">
+    <div>
+      <table>
+        <tr><th>Component</th><th>Responsibility</th></tr>
+        <tr><td><code>DollhouseManager</code></td><td>Room state machine, animated material transitions, share card trigger</td></tr>
+        <tr><td><code>DollhouseRoomSlicer</code></td><td>Reads OVRSceneRoom anchors, creates 1:20 floor quads per room</td></tr>
+        <tr><td><code>DollhouseHoverTrail</code></td><td>LineRenderer following PathTracker positions in dollhouse space</td></tr>
+        <tr><td><code>DollhouseSnapshotCamera</code></td><td>Overhead orthographic 1080×1080 render → PNG → Android gallery</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>The Share Card</h3>
+      <p>When a session ends with S or S+ grade — or the player taps the share button — BoreDOOM! would render the dollhouse from directly above at 1080×1080, overlaid with the score, grade, and BoreDOOM! branding. Saved to the Android gallery.</p>
+      <p>The share card is intended to be the app's organic marketing engine. It needs to look distinctive enough to stop a thumb-scroll.</p>
+      <div class="chip-row">
+        <div class="chip hi">1080 × 1080</div>
+        <div class="chip hi">Instagram Story</div>
+        <div class="chip hi">Auto-generated</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>3 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 4: CORE MODES ═ -->
+<div class="page">
+  <div style="position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg, var(--cyan), var(--teal));"></div>
+
+  <div class="section-eyebrow" style="margin-top:6px;">Game Modes — Core</div>
+  <h1>The Hoovering Modes</h1>
+  <div class="h-rule"></div>
+
+  <!-- Standard Coverage -->
+  <div class="mode-card" style="--mc: #00d4ff;">
+    <div class="mode-card-head">
+      <div class="mode-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </div>
+      <div><div class="mode-title">Standard Coverage</div><div class="mode-sub">"Cover every inch. Leave nothing behind."</div></div>
+      <div class="mode-badge">BASE MODE</div>
+    </div>
+    <div class="mode-cols">
+      <div>
+        <p style="font-size:11.5px;">The foundation of the whole game. Hoover your room while the AR overlay fills in a 25cm-cell coverage grid in real-time. Every cell you pass over illuminates. The HUD shows percentage, grade, and a live timer. Designed to create a daily cleaning habit.</p>
+        <div class="chip-row"><div class="chip hi">Ghost Run</div><div class="chip hi">Power-ups</div><div class="chip hi">Dollhouse Live</div></div>
+      </div>
+      <div>
+        <div class="mode-col-lbl">Planned Scoring</div>
+        <ul style="font-size:11px;">
+          <li>Coverage % × 10 pts base</li>
+          <li>Efficiency × 5 pts</li>
+          <li>Movement consistency × 5 pts</li>
+          <li>Power-up multipliers applied on top</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Perfect Grid -->
+  <div class="mode-card" style="--mc: #fbbf24;">
+    <div class="mode-card-head">
+      <div class="mode-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </div>
+      <div><div class="mode-title">Perfect Grid</div><div class="mode-sub">"Football pitch precision. In your living room."</div></div>
+      <div class="mode-badge">SKILL</div>
+    </div>
+    <div class="mode-cols">
+      <div>
+        <p style="font-size:11.5px;">AR would project parallel stripe lines across the floor — the classic professional football pitch stripe. The game rewards following them precisely. Each stripe has an independent progress bar; clear 80% to mark it gold. Get every stripe: unlock S+ territory.</p>
+        <div class="chip-row"><div class="chip gold">+300 Bonus Max</div><div class="chip">4 Pattern Types</div></div>
+      </div>
+      <div>
+        <div class="mode-col-lbl">Planned Patterns</div>
+        <ul style="font-size:11px;">
+          <li><strong>Parallel</strong> — classic straight stripes</li>
+          <li><strong>Diagonal</strong> — 45° offset for drama</li>
+          <li><strong>Herringbone</strong> — V-chevron pattern</li>
+          <li><strong>Spiral</strong> — inward from the edges</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ghost Run -->
+  <div class="mode-card" style="--mc: #a855f7;">
+    <div class="mode-card-head">
+      <div class="mode-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div><div class="mode-title">Ghost Run</div><div class="mode-sub">"Race your past self. Your past self will not go easy on you."</div></div>
+      <div class="mode-badge">PERSONAL BEST</div>
+    </div>
+    <div class="mode-cols">
+      <div>
+        <p style="font-size:11.5px;">Every hoovering session would be saved to PlayerProfile as a path through your home with full timing data. The next time you do the same chore, your previous best would replay as a translucent blue ghost — a path and a floating sphere head at original speed. Beat it to set a new personal best.</p>
+        <div class="chip-row"><div class="chip hi">Strava for housework</div><div class="chip hi">Persistent PB</div></div>
+      </div>
+      <div>
+        <div class="mode-col-lbl">Ghost Data Per Session</div>
+        <ul style="font-size:11px;">
+          <li>Full world-space path (Vector3 list)</li>
+          <li>Session duration in seconds</li>
+          <li>Total points scored</li>
+          <li>Saved via <code>PlayerProfile</code> JSON</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floor Art -->
+  <div class="mode-card" style="--mc: #ec4899;">
+    <div class="mode-card-head">
+      <div class="mode-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      </div>
+      <div><div class="mode-title">Floor Art</div><div class="mode-sub">"Your floor is the canvas. The hoover is the brush."</div></div>
+      <div class="mode-badge">CREATIVE</div>
+    </div>
+    <div class="mode-cols">
+      <div>
+        <p style="font-size:11.5px;">Instead of simply covering the floor, the player would trace a specific decorative pattern projected by AR. Stripes, Diamond, Chevron, or Spiral. Each pattern cell lights up on contact. The overhead dollhouse view would show the finished design — the most shareable image in the game. Think carpet crop circles.</p>
+        <div class="chip-row"><div class="chip" style="border-color:var(--pink); color:var(--pink);">Most Viral Mode</div><div class="chip">+500 Bonus Max</div></div>
+      </div>
+      <div>
+        <div class="mode-col-lbl">Planned Patterns</div>
+        <ul style="font-size:11px;">
+          <li><strong>Stripes</strong> — parallel bands (even-Z cells)</li>
+          <li><strong>Diamond</strong> — checkerboard</li>
+          <li><strong>Chevron</strong> — V-wave across floor</li>
+          <li><strong>Spiral</strong> — full coverage, inward</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>4 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 5: MORE MODES ══ -->
+<div class="page">
+  <div style="position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg, var(--red), var(--orange), var(--teal));"></div>
+
+  <div class="section-eyebrow" style="margin-top:6px;">Game Modes — Expanded</div>
+  <h1>Scan, Sprint &amp; Battle</h1>
+  <div class="h-rule" style="background:linear-gradient(90deg, var(--red), var(--orange), transparent);"></div>
+
+  <!-- Chaos Assessment -->
+  <div class="mode-card" style="--mc: #ef4444;">
+    <div class="mode-card-head">
+      <div class="mode-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div><div class="mode-title">Chaos Assessment</div><div class="mode-sub">"Don't clean anything. Just face the truth."</div></div>
+      <div class="mode-badge">SCAN MODE</div>
+    </div>
+    <div class="mode-cols">
+      <div>
+        <p style="font-size:11.5px;">Walk through every room without cleaning anything. BoreDOOM! would analyse spatial mesh density — triangles per m² — to estimate clutter levels per room. The dollhouse would fill with fire and smoke effects proportional to each room's chaos score. Results come with roasting commentary.</p>
+      </div>
+      <div>
+        <div class="mode-col-lbl">Planned Chaos Labels</div>
+        <ul style="font-size:11px;">
+          <li><strong style="color:#ef4444;">🔥 DOOMED</strong> — Score 9+</li>
+          <li><strong style="color:var(--orange);">😬 Chaos Adjacent</strong> — Score 7+</li>
+          <li><strong style="color:var(--gold);">Lived In (Honest)</strong> — Score 5+</li>
+          <li><strong style="color:var(--green);">Mostly Fine</strong> — Score 3+</li>
+          <li><strong style="color:var(--cyan);">🕵️ Suspiciously Clean</strong> — &lt;3</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Declutter Dash -->
+  <div class="mode-card" style="--mc: #f97316;">
+    <div class="mode-card-head">
+      <div class="mode-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div><div class="mode-title">Declutter Dash</div><div class="mode-sub">"Two minutes. As many items as possible. Go."</div></div>
+      <div class="mode-badge">TIMED SPRINT</div>
+    </div>
+    <div class="mode-cols">
+      <div>
+        <p style="font-size:11.5px;">A 2-minute sprint: walk to AR-tagged objects detected by OVRSceneObject classification and "collect" them by stepping within arm's reach. The room would fill with glowing orbs above real furniture and clutter. The timer would turn red inside the final 20 seconds.</p>
+        <div class="chip-row"><div class="chip">50 pts per item</div><div class="chip hi">OVRSceneObject API</div></div>
+      </div>
+      <div>
+        <div class="mode-col-lbl">Timing Options</div>
+        <ul style="font-size:11px;">
+          <li>Quick Sprint: 60 seconds</li>
+          <li>Standard: 120 seconds</li>
+          <li>Marathon: 180 seconds</li>
+        </ul>
+        <div class="mode-col-lbl" style="margin-top:8px;">AR Features Planned</div>
+        <ul style="font-size:11px;">
+          <li>Floating glow indicators above items</li>
+          <li>Urgency colour shift on HUD</li>
+          <li>Collect particle burst on pickup</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ChoreWars Battle -->
+  <div class="mode-card" style="--mc: #14b8a6;">
+    <div class="mode-card-head">
+      <div class="mode-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div><div class="mode-title">ChoreWars Battle</div><div class="mode-sub">"Two homes. One network. No excuses."</div></div>
+      <div class="mode-badge">MULTIPLAYER</div>
+    </div>
+    <div class="mode-cols">
+      <div>
+        <p style="font-size:11.5px;">Two players on the same WiFi network would each clean their own home simultaneously. Real-time UDP sync would push each player's coverage percentage to the other's HUD, showing YOU'RE WINNING or CATCH UP. First to 80% wins. Margin-based bonus for the victor.</p>
+        <div class="chip-row"><div class="chip green">No Internet Needed</div><div class="chip">LAN UDP · port 27877</div></div>
+      </div>
+      <div>
+        <div class="mode-col-lbl">Planned Network Design</div>
+        <ul style="font-size:11px;">
+          <li>UDP broadcast, 1.5s sync interval</li>
+          <li>Auto-discovery on local subnet</li>
+          <li>Lobby/matchmaking screen first</li>
+          <li>Win margin bonus: up to +200 pts</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>5 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 6: ZONE MODES ══ -->
+<div class="page">
+  <div style="position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg, var(--gold), var(--lime), var(--teal));"></div>
+
+  <div class="section-eyebrow" style="margin-top:6px;">Game Modes — Zone Specific</div>
+  <h1>Special Zones</h1>
+  <div class="h-rule" style="background:linear-gradient(90deg, var(--gold), var(--lime), transparent);"></div>
+  <p style="color:var(--text2); margin-bottom:14px; font-size:12px;">Each zone mode would target a specific high-chaos room type, inheriting full coverage tracking and adding a unique twist mechanic. These are planned for the initial release.</p>
+
+  <div class="two-col" style="gap:12px;">
+
+    <!-- Attic Attack -->
+    <div class="mode-card" style="--mc: #c8a882;">
+      <div class="mode-card-head">
+        <div class="mode-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c8a882" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </div>
+        <div><div class="mode-title">Attic Attack</div><div class="mode-badge">ZONE</div></div>
+      </div>
+      <p style="font-size:11px; margin-bottom:8px;">Designed for attic cleaning in near-darkness. Only the "flashlight cone" in front of the player would register as coverage. Cobweb zones require a 2-second dwell to clear. Skip more than 20% and a Darkness Penalty (0.8×) would reduce the final score. Looking up earns ceiling bonus points.</p>
+      <table style="font-size:10.5px; margin:0;">
+        <tr><td style="color:var(--text3); width:50%;">Cobweb zones</td><td><strong style="color:#c8a882;">8 per session</strong></td></tr>
+        <tr><td style="color:var(--text3);">Ceiling bonus</td><td><strong style="color:#c8a882;">up to +200 pts</strong></td></tr>
+        <tr><td style="color:var(--text3);">Darkness penalty</td><td><strong style="color:var(--red);">0.8× if &lt;80% cobwebs</strong></td></tr>
+      </table>
+    </div>
+
+    <!-- Shed Dread -->
+    <div class="mode-card" style="--mc: #6ab04c;">
+      <div class="mode-card-head">
+        <div class="mode-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6ab04c" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <div><div class="mode-title">Shed Dread</div><div class="mode-badge">ZONE</div></div>
+      </div>
+      <p style="font-size:11px; margin-bottom:8px;">Shed organisation concept: 10 AR tool icons would float around the real shed. Pick each up (1.5s dwell) and file in the correct colour-coded zone. Correct placements build a combo multiplier; misplacements cost 20 pts. Random spider encounters spawn for shoo-away bonus points.</p>
+      <table style="font-size:10.5px; margin:0;">
+        <tr><td style="color:var(--text3); width:50%;">Correct placement</td><td><strong style="color:#6ab04c;">50 × combo pts</strong></td></tr>
+        <tr><td style="color:var(--text3);">Misplacement</td><td><strong style="color:var(--red);">−20 pts</strong></td></tr>
+        <tr><td style="color:var(--text3);">Spider bonus</td><td><strong style="color:#6ab04c;">+10 pts each</strong></td></tr>
+      </table>
+    </div>
+
+    <!-- Basement Bust -->
+    <div class="mode-card" style="--mc: #4f78e0;">
+      <div class="mode-card-head">
+        <div class="mode-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f78e0" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div><div class="mode-title">Basement Bust</div><div class="mode-badge">ZONE</div></div>
+      </div>
+      <p style="font-size:11px; margin-bottom:8px;">Designed for basements. AR would highlight damp patches and stains detected in the spatial mesh. Each stain zone would require extended dwell time to "treat." Coverage would count double in low-ceiling zones, with a bonus for clearing all stain zones before finishing standard coverage.</p>
+      <div class="chip-row"><div class="chip">Stain zones</div><div class="chip">2× low-ceiling coverage</div></div>
+    </div>
+
+    <!-- Garage Barrage -->
+    <div class="mode-card" style="--mc: #888;">
+      <div class="mode-card-head">
+        <div class="mode-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <div><div class="mode-title">Garage Barrage</div><div class="mode-badge">ZONE</div></div>
+      </div>
+      <p style="font-size:11px; margin-bottom:8px;">For the garage. AR would mark oil stain zones requiring double-passes. A coverage bonus for cleaning behind detected large objects (cars, shelving). Tight-corridor navigation between virtual walls would earn precision bonuses. Grease and grime, gamified.</p>
+      <div class="chip-row"><div class="chip">Oil stain zones</div><div class="chip">Navigation bonus</div></div>
+    </div>
+
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>6 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 7: SCORING ════ -->
+<div class="page">
+  <div style="position:absolute; top:0; right:0; width:3px; height:100%; background:linear-gradient(180deg, var(--gold), var(--orange), transparent);"></div>
+
+  <div class="section-eyebrow">Scoring &amp; Progression</div>
+  <h1>Points, Grades &amp; Power-ups</h1>
+  <div class="h-rule" style="background:linear-gradient(90deg, var(--gold), var(--orange), transparent);"></div>
+
+  <div class="two-col" style="margin-bottom:14px; align-items:start;">
+    <div>
+      <h2>Grade Thresholds</h2>
+      <table>
+        <tr><th>Grade</th><th>Points</th><th>Verdict</th></tr>
+        <tr><td><span class="grade g-sp">S+</span></td><td>1,100+</td><td style="font-size:11px;">Mythological. Bonus points only reach this.</td></tr>
+        <tr><td><span class="grade g-s">S</span></td><td>900–1,099</td><td style="font-size:11px;">Exceptional. The share card grade.</td></tr>
+        <tr><td><span class="grade g-a">A</span></td><td>750–899</td><td style="font-size:11px;">Solid. Room genuinely clean.</td></tr>
+        <tr><td><span class="grade g-b">B</span></td><td>600–749</td><td style="font-size:11px;">Good effort. A few corners escaped.</td></tr>
+        <tr><td><span class="grade g-c">C</span></td><td>400–599</td><td style="font-size:11px;">Tried. The hoover is aware.</td></tr>
+        <tr><td><span class="grade g-d">D</span></td><td>&lt;400</td><td style="font-size:11px;">Did you even hold it?</td></tr>
+      </table>
+
+      <h2 style="margin-top:10px;">Score Formula</h2>
+      <div class="callout" style="font-family:var(--mono); font-size:10.5px; padding:10px 13px;">
+        base = (coverage% × 10) + (efficiency × 5) + (movement × 5)<br>
+        total = base × power_up_mult + bonus_pts<br>
+        <span style="color:var(--text3);">// bonus pushes you into S+ territory</span>
+      </div>
+    </div>
+    <div>
+      <h2>Power-Up Orbs (Planned)</h2>
+      <p style="font-size:11px; color:var(--text2);">During sessions, AR orbs would spawn at random in the room. Walk through one to activate.</p>
+      <table style="font-size:11px;">
+        <tr><th>Orb</th><th>Effect</th><th>Time</th></tr>
+        <tr><td style="color:var(--gold);">⭐ Score ×2</td><td>Double points</td><td>15s</td></tr>
+        <tr><td style="color:var(--green);">💚 Coverage+</td><td>Instant +5%</td><td>—</td></tr>
+        <tr><td style="color:var(--cyan);">🧊 Time Freeze</td><td>Timer stops</td><td>10s</td></tr>
+        <tr><td style="color:var(--purple);">👻 Ghost Trail</td><td>Ghost visible</td><td>20s</td></tr>
+        <tr><td style="color:var(--pink);">⚡ Speed Clean</td><td>2× cell size</td><td>30s</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2>Achievements &amp; Progression</h2>
+  <div class="three-col">
+    <div class="card" style="padding:10px 12px;">
+      <div style="font-size:18px; margin-bottom:5px;">🧹</div>
+      <div style="font-weight:700; font-size:11px; color:var(--cyan); margin-bottom:3px;">First Clean</div>
+      <div style="font-size:10px; color:var(--text3);">Complete your very first session</div>
+    </div>
+    <div class="card" style="padding:10px 12px;">
+      <div style="font-size:18px; margin-bottom:5px;">🎩</div>
+      <div style="font-weight:700; font-size:11px; color:var(--cyan); margin-bottom:3px;">Hat Trick</div>
+      <div style="font-size:10px; color:var(--text3);">3-day consecutive cleaning streak</div>
+    </div>
+    <div class="card" style="padding:10px 12px;">
+      <div style="font-size:18px; margin-bottom:5px;">⚔️</div>
+      <div style="font-weight:700; font-size:11px; color:var(--cyan); margin-bottom:3px;">Week Warrior</div>
+      <div style="font-size:10px; color:var(--text3);">7-day consecutive streak</div>
+    </div>
+    <div class="card" style="padding:10px 12px;">
+      <div style="font-size:18px; margin-bottom:5px;">💎</div>
+      <div style="font-weight:700; font-size:11px; color:var(--gold); margin-bottom:3px;">10K Club</div>
+      <div style="font-size:10px; color:var(--text3);">10,000 lifetime points earned</div>
+    </div>
+    <div class="card" style="padding:10px 12px;">
+      <div style="font-size:18px; margin-bottom:5px;">🌟</div>
+      <div style="font-weight:700; font-size:11px; color:var(--gold); margin-bottom:3px;">S-Class Cleaner</div>
+      <div style="font-size:10px; color:var(--text3);">Score S grade in any session</div>
+    </div>
+    <div class="card" style="padding:10px 12px;">
+      <div style="font-size:18px; margin-bottom:5px;">✨</div>
+      <div style="font-weight:700; font-size:11px; color:var(--pink); margin-bottom:3px;">No Spot Left Behind</div>
+      <div style="font-size:10px; color:var(--text3);">Achieve 100% coverage in a session</div>
+    </div>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>7 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 8: VIRAL ═══════ -->
+<div class="page" style="background:var(--deep);">
+  <div style="position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));"></div>
+
+  <div class="section-eyebrow" style="margin-top:6px;">Viral Potential</div>
+  <h1>Why This Could Go Viral</h1>
+  <div class="h-rule" style="background:linear-gradient(90deg, var(--pink), var(--purple), transparent);"></div>
+
+  <div class="pull">"Nobody has ever made housework feel like a sport. The hardware to do it has existed for eighteen months. We just have to build the game."</div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:14px;">
+    <div class="card" style="padding:12px;">
+      <div style="font-family:'Orbitron',monospace; font-size:26px; font-weight:900; background:linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">01</div>
+      <div style="font-weight:800; font-size:12px; margin:6px 0 5px;">The Share Card</div>
+      <div style="font-size:11px; color:var(--text2); line-height:1.6;">Every session could end with an auto-generated overhead shot of your dollhouse — heat-mapped, graded, timestamped. The hypothesis: it's distinctive enough that people post it without being asked, and their friends ask what app it is.</div>
+    </div>
+    <div class="card" style="padding:12px;">
+      <div style="font-family:'Orbitron',monospace; font-size:26px; font-weight:900; background:linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">02</div>
+      <div style="font-weight:800; font-size:12px; margin:6px 0 5px;">Floor Art</div>
+      <div style="font-size:11px; color:var(--text2); line-height:1.6;">Tracing a geometric pattern with the hoover, then photographing the overhead dollhouse view, would produce content that looks like carpet crop circles. The TikTok caption writes itself: <em>"I drew a diamond in my living room with the hoover."</em></div>
+    </div>
+    <div class="card" style="padding:12px;">
+      <div style="font-family:'Orbitron',monospace; font-size:26px; font-weight:900; background:linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">03</div>
+      <div style="font-weight:800; font-size:12px; margin:6px 0 5px;">Chaos Assessment</div>
+      <div style="font-size:11px; color:var(--text2); line-height:1.6;">Showing someone their chaos score would provoke one of two reactions — outrage or pride. <em>"My kitchen scored 8.9 DOOMED 🔥"</em> is exactly the kind of shareable sentence that drives app discovery. The roast comments would write themselves.</div>
+    </div>
+    <div class="card" style="padding:12px;">
+      <div style="font-family:'Orbitron',monospace; font-size:26px; font-weight:900; background:linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">04</div>
+      <div style="font-weight:800; font-size:12px; margin:6px 0 5px;">ChoreWars Battle</div>
+      <div style="font-size:11px; color:var(--text2); line-height:1.6;">Two people in different homes racing to clean simultaneously, with a live score ticker, would produce genuine urgency. <em>"My partner reached 80% while I was still finding the cable"</em> is the kind of story people tell, and it ends with "what app was it?"</div>
+    </div>
+    <div class="card" style="padding:12px;">
+      <div style="font-family:'Orbitron',monospace; font-size:26px; font-weight:900; background:linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">05</div>
+      <div style="font-weight:800; font-size:12px; margin:6px 0 5px;">Ghost Run</div>
+      <div style="font-size:11px; color:var(--text2); line-height:1.6;">Chasing your own ghost while hoovering is inherently absurd and funny to explain. <em>"I'm racing myself. My past self is faster."</em> Fitness apps have proven that self-competition drives extraordinary retention — and this is a brand-new context for it.</div>
+    </div>
+    <div class="card" style="padding:12px;">
+      <div style="font-family:'Orbitron',monospace; font-size:26px; font-weight:900; background:linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">06</div>
+      <div style="font-weight:800; font-size:12px; margin:6px 0 5px;">The Dollhouse Moment</div>
+      <div style="font-size:11px; color:var(--text2); line-height:1.6;">We expect that watching your own house render in miniature in the corner of your AR view — rooms turning from red to green as you clean — will be described as "magic" by first-time users. That word, shared person-to-person, is the most reliable distribution channel there is.</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">Target Audience</div>
+    <p style="font-size:11.5px; margin:0;">Primary: 18–35 Quest 3 owners already using VR fitness apps (Beat Saber, Supernatural, FitXR). They're pre-conditioned to gamified physical activity and already own the hardware. Secondary: productivity-gamification users (Habitica, Streaks). The insight: <strong>these people already feel guilty about not keeping the house clean. BoreDOOM! is intended to resolve that cognitive dissonance — and make them feel good about it.</strong></p>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>8 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 9: MARKET ══════ -->
+<div class="page">
+  <div style="position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg, var(--green), var(--teal), var(--cyan));"></div>
+
+  <div class="section-eyebrow" style="margin-top:6px;">Market &amp; Business</div>
+  <h1>Landscape &amp; Monetisation</h1>
+  <div class="h-rule" style="background:linear-gradient(90deg, var(--green), var(--teal), transparent);"></div>
+
+  <div class="two-col" style="margin-bottom:14px;">
+    <div>
+      <h2>Competitive Landscape</h2>
+      <p style="font-size:11.5px;">No direct competitor exists. The closest adjacent products are either gamified productivity tools without AR, or AR fitness apps that ignore the home environment entirely.</p>
+      <table style="font-size:11px;">
+        <tr><th>Product</th><th>AR?</th><th>Home?</th><th>Chores?</th></tr>
+        <tr>
+          <td><strong>Beat Saber</strong></td>
+          <td style="color:var(--text3);">No</td>
+          <td style="color:var(--text3);">No</td>
+          <td style="color:var(--text3);">No</td>
+        </tr>
+        <tr>
+          <td><strong>Habitica</strong></td>
+          <td style="color:var(--text3);">No</td>
+          <td style="color:var(--green);">Yes</td>
+          <td style="color:var(--green);">Yes</td>
+        </tr>
+        <tr>
+          <td><strong>Supernatural</strong></td>
+          <td style="color:var(--text3);">No</td>
+          <td style="color:var(--text3);">No</td>
+          <td style="color:var(--text3);">No</td>
+        </tr>
+        <tr>
+          <td><strong>VZfit</strong></td>
+          <td style="color:var(--green);">Yes</td>
+          <td style="color:var(--text3);">No</td>
+          <td style="color:var(--text3);">No</td>
+        </tr>
+        <tr style="background:rgba(0,212,255,0.05);">
+          <td><strong style="color:var(--cyan);">BoreDOOM!</strong></td>
+          <td style="color:var(--cyan); font-weight:700;">Yes</td>
+          <td style="color:var(--cyan); font-weight:700;">Yes</td>
+          <td style="color:var(--cyan); font-weight:700;">Yes</td>
+        </tr>
+      </table>
+      <div class="callout" style="padding:10px 12px;">
+        <div class="callout-title">The Gap</div>
+        <p style="font-size:11px; margin:0;">BoreDOOM! is the first intended product to combine passthrough AR, real-home spatial tracking, and gamified housework. The gap exists because the hardware to do it properly — Meta Quest 3's colour passthrough and mesh quality — only became available in late 2023.</p>
+      </div>
+    </div>
+    <div>
+      <h2>Planned Business Model</h2>
+      <div class="card" style="margin-bottom:10px; border-color:var(--cyan);">
+        <div style="font-family:'Orbitron',monospace; font-size:18px; color:var(--cyan); margin-bottom:4px;">£9.99 / $12.99</div>
+        <div style="font-weight:700; font-size:12px; margin-bottom:6px;">One-time purchase — Meta Quest Store</div>
+        <ul style="font-size:11px; color:var(--text2);">
+          <li>No subscriptions, no ads, no energy mechanics</li>
+          <li>Full 11-mode game at launch</li>
+          <li>Free updates for v1.x bug fixes</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom:10px; border-color:var(--gold);">
+        <div style="font-family:'Orbitron',monospace; font-size:14px; color:var(--gold); margin-bottom:4px;">v2.0 DLC — Outdoor Pack</div>
+        <div style="font-size:11px; color:var(--text2);">Mowing modes, driveway washing, window cleaning. Kept separate from the core indoor game. Priced at £3.99.</div>
+      </div>
+      <div class="card" style="border-color:var(--purple);">
+        <div style="font-family:'Orbitron',monospace; font-size:14px; color:var(--purple); margin-bottom:4px;">ChoreWars Online (Future)</div>
+        <div style="font-size:11px; color:var(--text2);">Internet-based multiplayer beyond LAN. Leaderboards, weekly challenges, seasonal events. Optional subscription layer, post-launch.</div>
+      </div>
+
+      <h2 style="margin-top:12px;">Addressable Market</h2>
+      <div class="three-col" style="gap:8px;">
+        <div style="text-align:center;">
+          <div style="font-family:'Orbitron',monospace; font-size:20px; font-weight:900; color:var(--cyan);">3M+</div>
+          <div style="font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:1px;">Quest 3 Units<br>Shipped (2024)</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Orbitron',monospace; font-size:20px; font-weight:900; color:var(--gold);">~15%</div>
+          <div style="font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:1px;">Conversion<br>Target</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Orbitron',monospace; font-size:20px; font-weight:900; color:var(--green);">£450k</div>
+          <div style="font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:1px;">Potential<br>at Launch</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>9 / 10</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════ PAGE 10: TECH + NEXT ═ -->
+<div class="page">
+  <div style="position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg, var(--cyan), var(--purple));"></div>
+
+  <div class="section-eyebrow" style="margin-top:6px;">Architecture &amp; Roadmap</div>
+  <h1>Technology &amp; What's Next</h1>
+  <div class="h-rule"></div>
+
+  <div class="two-col" style="margin-bottom:14px;">
+    <div>
+      <h2>Target Tech Stack</h2>
+      <table style="font-size:11px;">
+        <tr><th>Layer</th><th>Technology</th></tr>
+        <tr><td>Game Engine</td><td>Unity 6000.4.5f1, Built-in RP, IL2CPP</td></tr>
+        <tr><td>XR Runtime</td><td>OpenXR via Meta XR SDK</td></tr>
+        <tr><td>Spatial</td><td>OVRSceneRoom, OVRSceneObject, XRMeshSubsystem</td></tr>
+        <tr><td>Display</td><td>Meta Quest 3 full-colour passthrough, 120Hz</td></tr>
+        <tr><td>UI</td><td>TextMeshPro, Unity UI canvas</td></tr>
+        <tr><td>Persistence</td><td>PlayerProfile singleton, JSON to persistent path</td></tr>
+        <tr><td>Multiplayer</td><td>UdpClient broadcast, LAN port 27877</td></tr>
+        <tr><td>Dev tooling</td><td>Unity MCP plugin for AI-agent scene wiring</td></tr>
+      </table>
+
+      <h2 style="margin-top:10px;">Codebase Status</h2>
+      <table style="font-size:11px;">
+        <tr><th>Namespace</th><th>Status</th></tr>
+        <tr><td><code>Chorewars.AR</code> — coverage, mesh, path</td><td><span class="status indev">Prototype</span></td></tr>
+        <tr><td><code>Chorewars.Core</code> — scoring, profile</td><td><span class="status indev">In Dev</span></td></tr>
+        <tr><td><code>Chorewars.Modes</code> — 11 controllers</td><td><span class="status wip">Stubbed</span></td></tr>
+        <tr><td><code>Chorewars.Dollhouse</code> — 4 scripts</td><td><span class="status wip">Stubbed</span></td></tr>
+        <tr><td><code>Chorewars.UI</code> — HUD, selection, summary</td><td><span class="status wip">Stubbed</span></td></tr>
+        <tr><td>Unity scene wiring</td><td><span class="status concept">Not Started</span></td></tr>
+        <tr><td>Quest 3 build</td><td><span class="status concept">Not Started</span></td></tr>
+      </table>
+    </div>
+    <div>
+      <h2>Release Roadmap</h2>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div class="card" style="border-color:var(--cyan); padding:10px 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <div style="font-family:'Orbitron',monospace; font-size:12px; color:var(--cyan);">v0.1 — Proof of Concept</div>
+            <div class="status indev">Now</div>
+          </div>
+          <ul style="font-size:10.5px; color:var(--text2);">
+            <li>Standard Coverage working on Quest 3</li>
+            <li>Dollhouse scene renders real room</li>
+            <li>Coverage grid + grade HUD live</li>
+            <li>Ghost Run data saves/loads</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:var(--gold); padding:10px 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <div style="font-family:'Orbitron',monospace; font-size:12px; color:var(--gold);">v1.0 — Full Launch</div>
+            <div class="status concept">Planned</div>
+          </div>
+          <ul style="font-size:10.5px; color:var(--text2);">
+            <li>All 11 game modes playable</li>
+            <li>Share card + Android gallery save</li>
+            <li>Power-ups + Achievements</li>
+            <li>ChoreWars Battle LAN multiplayer</li>
+            <li>Meta Quest Store submission</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:var(--purple); padding:10px 12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <div style="font-family:'Orbitron',monospace; font-size:12px; color:var(--purple);">v2.0 — Outdoor DLC</div>
+            <div class="status concept">Future</div>
+          </div>
+          <ul style="font-size:10.5px; color:var(--text2);">
+            <li>Mowing modes (garden, stripe patterns)</li>
+            <li>Driveway/outdoor surface tracking</li>
+            <li>Online leaderboards</li>
+            <li>Seasonal challenge events</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-bottom:0;">
+    <div class="callout-title">The Ask</div>
+    <p style="font-size:11.5px; margin:0;">BoreDOOM! needs: a Unity developer to wire the scenes, a Meta Quest 3 device for testing, and a small amount of time to get from stubbed C# to a playable proof-of-concept. The AI agent sprint has built the architecture; the question is how quickly we can get the first real session completed inside a real living room. That moment is the game.</p>
+  </div>
+
+  <div class="pfoot">
+    <div class="pfoot-logo">BOREDOOM!</div>
+    <div>Concept &amp; Design · Splippers.com · 2026</div>
+    <div>10 / 10</div>
+  </div>
+</div>
+
+</body>
+</html>

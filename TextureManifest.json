@@ -1,0 +1,401 @@
+{
+  "$schema": "TextureManifest v1.0",
+  "project": "BoreDOOM!",
+  "generated_by": "opencode/big-pickle@EDDIE",
+  "generated_at": "2026-06-06T17:00:00Z",
+  "convention": "AI greyboxes with solid colored materials. Replace each placeholder with real texture before shipping.",
+  "total_slots": 32,
+  "ai_can_generate": 8,
+  "human_required": 24,
+
+  "textures": [
+    {
+      "slot": "floor_carpet",
+      "type": "material",
+      "mode": ["standard-coverage", "perfect-grid", "ghost-run", "mowing-art", "battle"],
+      "description": "AR floor overlay — the virtual carpet/floor being hoovered. Marks coverage progress.",
+      "dimensions": "512x512",
+      "tiling": true,
+      "placeholderColor": "#8b7355",
+      "humanRequired": true,
+      "notes": "Indoor carpet or hardwood with subtle grain. Tiled 0.25m cells via CoverageMap.cs. This is indoors — no grass. Darkens or desaturates for unvisited cells."
+    },
+    {
+      "slot": "floor_coverage_unvisited",
+      "type": "material",
+      "mode": ["standard-coverage", "perfect-grid", "ghost-run", "mowing-art", "battle"],
+      "description": "Unvisited coverage cell — the dirty/unhoovered version of the floor.",
+      "dimensions": "256x256",
+      "tiling": true,
+      "placeholderColor": "#4a3520",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "AI: tint floor_carpet dark brown at 40% opacity. Human: replace with actual dusty/filthy carpet texture."
+    },
+    {
+      "slot": "floor_coverage_visited",
+      "type": "material",
+      "mode": ["standard-coverage", "perfect-grid", "ghost-run", "mowing-art", "battle"],
+      "description": "Visited coverage cell — the clean/hoovered version.",
+      "dimensions": "256x256",
+      "tiling": true,
+      "placeholderColor": "#4caf50",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "AI: bright green solid. Human: actual freshly-hoovered clean carpet or pristine floor."
+    },
+
+    {
+      "slot": "path_line_default",
+      "type": "material",
+      "mode": ["standard-coverage", "battle"],
+      "description": "LineRenderer material tracing the player's hoovering path in real-time.",
+      "dimensions": "64x64",
+      "tiling": true,
+      "placeholderColor": "#ff6600",
+      "humanRequired": true,
+      "notes": "Glow effect preferred — like Tron light-trail or GPS track. Should fade over distance. See PathLineVisualizer.cs."
+    },
+
+    {
+      "slot": "stripe_idle",
+      "type": "material",
+      "mode": ["perfect-grid"],
+      "description": "AR grid stripe — not yet covered. Player must trace these lines.",
+      "dimensions": "256x64",
+      "tiling": true,
+      "placeholderColor": "#ffffff",
+      "humanRequired": true,
+      "notes": "White dashed line at 60% opacity. Think football pitch marking. See PerfectGridModeController.cs stripeIdleMat."
+    },
+    {
+      "slot": "stripe_cleared",
+      "type": "material",
+      "mode": ["perfect-grid"],
+      "description": "AR grid stripe — successfully traced by the player.",
+      "dimensions": "256x64",
+      "tiling": true,
+      "placeholderColor": "#00ff66",
+      "humanRequired": true,
+      "notes": "Same texture as stripe_idle but green glow. Animated shader property _Cleared transition is nice."
+    },
+    {
+      "slot": "stripe_line_prefab",
+      "type": "prefab",
+      "mode": ["perfect-grid"],
+      "description": "LineRenderer prefab — one per stripe zone. Instantiated by GenerateStripes().",
+      "dimensions": "N/A (geometry)",
+      "tiling": false,
+      "placeholderColor": "#ffffff",
+      "humanRequired": true,
+      "notes": "A thin quad or LineRenderer. Width = stripeWidthMeters (0.5m). Spans room Z axis."
+    },
+
+    {
+      "slot": "ghost_trail",
+      "type": "material",
+      "mode": ["ghost-run"],
+      "description": "Translucent LineRenderer showing the user's best previous run as a ghost trace.",
+      "dimensions": "64x64",
+      "tiling": true,
+      "placeholderColor": "#66ccff",
+      "humanRequired": true,
+      "notes": "Color: new Color(0.4f, 0.8f, 1f, 0.4f) per GhostRunModeController.cs. Translucent, ethereal, pulsing."
+    },
+    {
+      "slot": "ghost_head",
+      "type": "material",
+      "mode": ["ghost-run"],
+      "description": "Sphere at the tip of the ghost trail — represents where 'past you' is right now.",
+      "dimensions": "128x128",
+      "tiling": false,
+      "placeholderColor": "#88ccff",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "Small sphere (0.15m). Translucent blue-white. AI: solid sphere with emissive light blue. Human: glowing orb with slight lens flare."
+    },
+
+    {
+      "slot": "chaos_fire_effect",
+      "type": "particle",
+      "mode": ["chaos-assessment"],
+      "description": "Particle system for rooms with chaos score >= 7 (DOOMED).",
+      "dimensions": "256x256 (flipbook)",
+      "tiling": false,
+      "placeholderColor": "#ff4400",
+      "humanRequired": true,
+      "notes": "Animated fire particle. Should look dangerous but comedic — this is a chore app, not Mordor. See ChaosAssessmentModeController.cs fireEffectPrefab."
+    },
+    {
+      "slot": "chaos_smoke_effect",
+      "type": "particle",
+      "mode": ["chaos-assessment"],
+      "description": "Particle system for rooms with chaos score 4–7 (messy but not doomed).",
+      "dimensions": "128x128 (flipbook)",
+      "tiling": false,
+      "placeholderColor": "#999999",
+      "humanRequired": true,
+      "notes": "Wispy grey smoke. Subtle. See ChaosAssessmentModeController.cs smokeEffectPrefab."
+    },
+
+    {
+      "slot": "dollhouse_dirty",
+      "type": "material",
+      "mode": ["chaos-assessment"],
+      "description": "Dollhouse room material — shows the room in its dirty/uncleaned state.",
+      "dimensions": "512x512",
+      "tiling": true,
+      "placeholderColor": "#5c4a3a",
+      "humanRequired": true,
+      "notes": "Grungy overlay: stains, dust, clutter shadows. Transitions to cleanMat via DollhouseManager.cs. opacity ranges 0.6→1.0."
+    },
+    {
+      "slot": "dollhouse_clean",
+      "type": "material",
+      "mode": ["chaos-assessment"],
+      "description": "Dollhouse room material — pristine/cleaned state.",
+      "dimensions": "512x512",
+      "tiling": true,
+      "placeholderColor": "#e8e0d4",
+      "humanRequired": true,
+      "notes": "Warm, clean, inviting. Fresh paint, polished wood feel. Sharp contrast with dirtyMat."
+    },
+    {
+      "slot": "dollhouse_transitioning",
+      "type": "material",
+      "mode": ["chaos-assessment"],
+      "description": "Intermediate material used during the 0.8s dirty→clean transition animation.",
+      "dimensions": "512x512",
+      "tiling": true,
+      "placeholderColor": "#b8a898",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "AI: lerp between dirtyMat and cleanMat colors. Human: actual halfway-cleaned texture with sparkle particles."
+    },
+
+    {
+      "slot": "mowingart_cell_active",
+      "type": "material",
+      "mode": ["mowing-art"],
+      "description": "Pattern cell quad — not yet covered by the player. Shows where to trace.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#e6cc33",
+      "humanRequired": true,
+      "notes": "Gold translucent quad. Color: new Color(0.9f, 0.8f, 0.2f, 0.5f). Player must walk over these cells."
+    },
+    {
+      "slot": "mowingart_cell_completed",
+      "type": "material",
+      "mode": ["mowing-art"],
+      "description": "Pattern cell quad — successfully traced. Swaps from activeMat when player walks through.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#33e666",
+      "humanRequired": true,
+      "notes": "Green vibrant quad. Color: new Color(0.2f, 0.9f, 0.4f, 0.7f). Satisfying pop effect on completion."
+    },
+
+    {
+      "slot": "declutter_collect_vfx",
+      "type": "prefab",
+      "mode": ["declutter-dash"],
+      "description": "Particle/effect that plays when player collects (reaches) a clutter item.",
+      "dimensions": "128x128 (flipbook)",
+      "tiling": false,
+      "placeholderColor": "#ffaa00",
+      "humanRequired": true,
+      "notes": "Burst of sparkles/gold coins. Auto-destroyed after 2 seconds. Satisfying pickup feel."
+    },
+    {
+      "slot": "declutter_item_indicator",
+      "type": "material",
+      "mode": ["declutter-dash"],
+      "description": "AR indicator hovering over uncollected clutter items.",
+      "dimensions": "128x128",
+      "tiling": false,
+      "placeholderColor": "#ff3300",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "AI: red floating exclamation mark or diamond. Human: stylized trash icon or glowing orb with countdown ring."
+    },
+
+    {
+      "slot": "battle_win_banner",
+      "type": "sprite",
+      "mode": ["battle"],
+      "description": "Full-screen overlay shown when player wins a ChoreWars battle.",
+      "dimensions": "1024x512",
+      "tiling": false,
+      "placeholderColor": "#33ff33",
+      "humanRequired": true,
+      "notes": "Bold text: 'YOU WIN' or 'VICTORY'. Splipperverse-appropriate font. Green glow. See ChoreWarsBattleModeController.cs winBanner."
+    },
+    {
+      "slot": "battle_lose_banner",
+      "type": "sprite",
+      "mode": ["battle"],
+      "description": "Full-screen overlay when opponent wins.",
+      "dimensions": "1024x512",
+      "tiling": false,
+      "placeholderColor": "#ff3333",
+      "humanRequired": true,
+      "notes": "Bold text: 'DEFEATED' or 'BETTER LUCK'. Motivational, not demoralizing. Red/orange tint. See loseBanner."
+    },
+
+    {
+      "slot": "mode_icon_standard",
+      "type": "sprite",
+      "mode": ["standard-coverage"],
+      "description": "ChoreSelectionUI tile icon — Standard Coverage mode.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#3399ff",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "AI: solid circle fill with checkmark. Human: stylized hoover icon. Accent: rgb(0.2, 0.8, 1.0)."
+    },
+    {
+      "slot": "mode_icon_perfectgrid",
+      "type": "sprite",
+      "mode": ["perfect-grid"],
+      "description": "ChoreSelectionUI tile icon — Perfect Grid mode.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#1ae699",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "AI: grid pattern. Human: carpet stripe pattern / polished floor grid. Accent: rgb(0.1, 0.9, 0.6)."
+    },
+    {
+      "slot": "mode_icon_ghostrun",
+      "type": "sprite",
+      "mode": ["ghost-run"],
+      "description": "ChoreSelectionUI tile icon — Ghost Run mode.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#9966ff",
+      "humanRequired": false,
+      "aiCanGenerate": true,
+      "notes": "AI: translucent figure outline. Human: ghost with stopwatch. Accent: rgb(0.6, 0.4, 1.0)."
+    },
+    {
+      "slot": "mode_icon_chaos",
+      "type": "sprite",
+      "mode": ["chaos-assessment"],
+      "description": "ChoreSelectionUI tile icon — Chaos Assessment mode.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#ff3333",
+      "humanRequired": true,
+      "notes": "Fire/magnifying glass. Accent: rgb(1.0, 0.2, 0.2). Tags: 'DOOMED', 'Chaos adjacent' from ChaosAssessmentModeController.cs."
+    },
+    {
+      "slot": "mode_icon_mowingart",
+      "type": "sprite",
+      "mode": ["mowing-art"],
+      "description": "ChoreSelectionUI tile icon — Mowing Art mode.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#33cc33",
+      "humanRequired": true,
+      "notes": "Paintbrush/pattern. Accent: rgb(0.3, 0.9, 0.3)."
+    },
+    {
+      "slot": "mode_icon_declutter",
+      "type": "sprite",
+      "mode": ["declutter-dash"],
+      "description": "ChoreSelectionUI tile icon — Declutter Dash mode.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#ffb300",
+      "humanRequired": true,
+      "notes": "Stopwatch / running figure / trash bag. Accent: rgb(1.0, 0.7, 0.1)."
+    },
+    {
+      "slot": "mode_icon_battle",
+      "type": "sprite",
+      "mode": ["battle"],
+      "description": "ChoreSelectionUI tile icon — ChoreWars Battle mode.",
+      "dimensions": "256x256",
+      "tiling": false,
+      "placeholderColor": "#ff4d4d",
+      "humanRequired": true,
+      "notes": "Crossed hoovers / swords / versus symbol. Accent: rgb(1.0, 0.3, 0.3)."
+    },
+
+    {
+      "slot": "hud_timer_background",
+      "type": "sprite",
+      "mode": ["declutter-dash", "battle"],
+      "description": "HUD timer panel background — semi-transparent dark bar.",
+      "dimensions": "512x128",
+      "tiling": false,
+      "placeholderColor": "#000000",
+      "humanRequired": true,
+      "notes": "Rounded rect, 80% opacity black. Houses timerLabel, scoreLabel, itemsLabel. Matches Quest system UI aesthetic."
+    },
+    {
+      "slot": "hud_button_default",
+      "type": "sprite",
+      "mode": ["all"],
+      "description": "Default UI button background for mode selection and lobby panels.",
+      "dimensions": "256x64",
+      "tiling": false,
+      "placeholderColor": "#333333",
+      "humanRequired": true,
+      "notes": "Rounded rect. Subtle border. Hover/pressed states use tint. Splipperverse dark-theme appropriate."
+    },
+    {
+      "slot": "battle_lobby_background",
+      "type": "sprite",
+      "mode": ["battle"],
+      "description": "Lobby panel background — waiting for opponent screen.",
+      "dimensions": "1024x768",
+      "tiling": false,
+      "placeholderColor": "#1a1a2e",
+      "humanRequired": true,
+      "notes": "Dark themed panel. 'Waiting for opponent on LAN...' with pulsing dots animation."
+    },
+    {
+      "slot": "session_summary_background",
+      "type": "sprite",
+      "mode": ["all"],
+      "description": "SessionSummaryUI panel — shows score, coverage %, time after session ends.",
+      "dimensions": "1024x768",
+      "tiling": false,
+      "placeholderColor": "#1a1a2e",
+      "humanRequired": true,
+      "notes": "Dark panel with score breakdown. Stats: coverage%, bonus points, total score."
+    },
+
+    {
+      "slot": "spatial_mesh_scan",
+      "type": "shader",
+      "mode": ["all"],
+      "description": "Shader for OVR spatial mesh — the wireframe/translucent room scan visible in AR.",
+      "dimensions": "N/A (shader)",
+      "tiling": false,
+      "placeholderColor": "#00ffcc",
+      "humanRequired": true,
+      "notes": "Chorewars/ProjectedTexture shader. Wireframe with scanline effect. See ProjectedTextureBaker.cs and SpatialMeshTracker.cs."
+    }
+  ],
+
+  "usage_for_unity_ai": {
+    "instruction": "Create placeholder materials as Unity .mat files with the specified hex colors and names. Place them in Assets/Chorewars/Materials/Placeholders/. Assign each to its controller's serialized field in the Inspector.",
+    "material_naming": "mat_<slot>_placeholder (e.g. mat_floor_carpet_placeholder)",
+    "sprite_naming": "spr_<slot>_placeholder (e.g. spr_mode_icon_standard_placeholder)",
+    "do_not_do": "Do NOT generate AI textures. Solid colored materials ONLY. Let Jonathan or an artist replace them. Indoor theme — no grass, no lawn, no outdoors."
+  },
+
+  "mode_coverage": {
+    "standard-coverage": ["floor_carpet", "floor_coverage_unvisited", "floor_coverage_visited", "path_line_default"],
+    "perfect-grid": ["floor_carpet", "floor_coverage_unvisited", "floor_coverage_visited", "stripe_idle", "stripe_cleared", "stripe_line_prefab"],
+    "ghost-run": ["floor_carpet", "floor_coverage_unvisited", "floor_coverage_visited", "ghost_trail", "ghost_head"],
+    "chaos-assessment": ["chaos_fire_effect", "chaos_smoke_effect", "dollhouse_dirty", "dollhouse_clean", "dollhouse_transitioning"],
+    "mowing-art": ["floor_carpet", "floor_coverage_unvisited", "floor_coverage_visited", "mowingart_cell_active", "mowingart_cell_completed"],
+    "declutter-dash": ["declutter_collect_vfx", "declutter_item_indicator"],
+    "battle": ["floor_carpet", "floor_coverage_unvisited", "floor_coverage_visited", "path_line_default", "battle_win_banner", "battle_lose_banner"]
+  }
+}

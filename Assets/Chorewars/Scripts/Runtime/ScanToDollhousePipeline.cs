@@ -31,6 +31,9 @@ namespace Chorewars.Runtime
         /// <summary>Rooms emitted by the scan so far.</summary>
         public int RoomCount => _rooms.Count;
 
+        /// <summary>The scanned rooms, in the order they arrived. Read-only: the list is live.</summary>
+        public IReadOnlyList<RoomScan> Rooms => _rooms;
+
         /// <summary>Room GameObjects created inside the miniature.</summary>
         public int MiniatureRoomCount => _roomGeometry.Count;
 

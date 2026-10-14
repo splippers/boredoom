@@ -49,6 +49,9 @@ namespace Chorewars.Runtime
         /// <summary>Source of the per-room breakdown for the summary. Optional.</summary>
         public DollhouseManager dollhouse;
 
+        /// <summary>The scan -> dollhouse pipeline, which also holds the scanned room rectangles.</summary>
+        public ScanToDollhousePipeline pipeline;
+
         /// <summary>Stable key for this mode's personal best / ghost in <see cref="PlayerProfile"/>.</summary>
         public abstract string ProfileModeId { get; }
 

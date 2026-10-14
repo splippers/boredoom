@@ -76,6 +76,14 @@ namespace Chorewars.Runtime
                     Blurb = "Race the clock to clear the clutter you can reach.",
                     ExportPrefix = "declutter-dash",
                     Build = () => New<RuntimeDeclutterDashMode>("RuntimeDeclutterDashMode")
+                },
+                new ModeInfo
+                {
+                    Id = "chaos-assessment",
+                    DisplayName = "Chaos Assessment",
+                    Blurb = "Don't clean a thing — survey the room and file a mess report.",
+                    ExportPrefix = "chaos-assessment",
+                    Build = () => New<RuntimeChaosAssessmentMode>("RuntimeChaosAssessmentMode")
                 }
             };
         }

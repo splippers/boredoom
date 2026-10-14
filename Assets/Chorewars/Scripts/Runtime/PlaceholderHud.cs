@@ -18,18 +18,32 @@ namespace Chorewars.Runtime
         public event Action StartScanRequested;
 
         private static Font _font;
+        private static Sprite _ringSprite;
+        private static Sprite _flameSprite;
 
         private Camera _camera;
         private Canvas _canvas;
 
         private GameObject _chorePanel;
-        private Text _coverageText;
+        private Text _pointsText;
         private Text _timerText;
         private Text _gradeText;
         private Text _sourceText;
         private Text _comboText;
+        private Image _coverageRing;
+        private Text _coverageRingText;
+        private Image _flame;
         private float _coveragePunch;
         private float _comboPunch;
+        private float _flamePulse;
+
+        private int _targetPoints;
+        private float _displayedPoints;
+        private float _ringFill;
+        private float _ringTarget;
+        private float _gradeSlam;
+        private float _summaryPunch;
+        private Text _summaryGradeText;
 
         private GameObject _scanPanel;
         private Text _scanTitleText;
@@ -72,7 +86,16 @@ namespace Chorewars.Runtime
 
         public void SetCoverage(float percent)
         {
-            Assign(_coverageText, $"{percent:0}% CLEAN");
+            // The ring and the readout are smoothed/punched in AnimatePunches so this stays cheap
+            // and can be called every frame.
+            _ringTarget = Mathf.Clamp01(percent / 100f);
+            Assign(_coverageRingText, $"{percent:0}%");
+        }
+
+        /// <summary>Live score. The ticker counts up toward it rather than snapping.</summary>
+        public void SetPoints(int points)
+        {
+            _targetPoints = points;
         }
 
         public void SetTimer(float secondsRemaining)
@@ -100,18 +123,20 @@ namespace Chorewars.Runtime
         {
             if (_comboText == null) return;
 
-            if (combo < 2)
-            {
-                _comboText.gameObject.SetActive(false);
-                return;
-            }
+            bool show = combo >= 2;
+            _comboText.gameObject.SetActive(show);
 
-            _comboText.gameObject.SetActive(true);
+            // The flame only appears once a real run is going, so it reads as an achievement.
+            if (_flame != null) _flame.gameObject.SetActive(combo >= 3);
+
+            if (!show) return;
+
             Assign(_comboText, combo >= 10 ? $"STREAK x{combo}  \u2022 FIRE" : $"STREAK x{combo}");
             _comboPunch = 1f;
+            _flamePulse = 1f;
         }
 
-        /// <summary>One-frame scale punch on the coverage readout; called for every new cell.</summary>
+        /// <summary>One-frame scale punch on the coverage ring; called for every new cell.</summary>
         public void PunchCoverage() => _coveragePunch = 1f;
 
         // ---- Scan panel -------------------------------------------------------------------
@@ -167,7 +192,12 @@ namespace Chorewars.Runtime
             var percent = result != null && result.session != null ? result.session.coveragePercent : 0f;
             var points = result != null ? result.totalPoints : 0;
 
-            Assign(_summaryText, $"CHORE COMPLETE\n\nGrade {grade}\nClean {percent:0}%\nScore {points}");
+            Assign(_summaryGradeText, grade);
+            Assign(_summaryText, $"CHORE COMPLETE\nClean {percent:0}%    Score {points}");
+
+            // Kick off the slam + the screen-space punch.
+            _gradeSlam = 1f;
+            _summaryPunch = 1f;
 
             _summaryRoot.SetActive(true);
             _summaryHideAt = Time.unscaledTime + 12f;
@@ -190,36 +220,82 @@ namespace Chorewars.Runtime
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
-            rect.offsetMin = new Vector2(0f, -210f);
+            rect.offsetMin = new Vector2(0f, -260f);
             rect.offsetMax = Vector2.zero;
 
             var paper = MakeImage(panelGo.transform, "Paper", new Color(0.06f, 0.05f, 0.04f, 0.55f));
             Stretch(paper.GetComponent<RectTransform>());
 
-            _coverageText = MakeText(panelGo.transform, "Coverage", 46, TextAnchor.UpperLeft, Color.white);
-            SetRect(_coverageText.rectTransform, new Vector2(20f, -12f), new Vector2(600f, 56f));
+            // ---- coverage ring (top right) ----
+            // A dim full ring behind a radially-filled one; the fill reads the progress directly.
+            MakeRing(panelGo.transform, "RingBack", new Color(1f, 1f, 1f, 0.13f), out _);
 
-            // Right-anchored with a top-right pivot so the streak punch scales from that corner.
-            _comboText = MakeText(panelGo.transform, "Combo", 32, TextAnchor.UpperRight, new Color(1f, 0.72f, 0.25f));
-            var comboRect = _comboText.rectTransform;
-            comboRect.anchorMin = new Vector2(1f, 1f);
-            comboRect.anchorMax = new Vector2(1f, 1f);
-            comboRect.pivot = new Vector2(1f, 1f);
-            comboRect.anchoredPosition = new Vector2(-20f, -16f);
-            comboRect.sizeDelta = new Vector2(300f, 46f);
+            _coverageRing = MakeRing(panelGo.transform, "RingFill", new Color(0.36f, 0.9f, 0.6f), out _);
+            _coverageRing.type = Image.Type.Filled;
+            _coverageRing.fillMethod = Image.FillMethod.Radial360;
+            _coverageRing.fillOrigin = (int)Image.Origin360.Top;
+            _coverageRing.fillClockwise = true;
+            _coverageRing.fillAmount = 0f;
+
+            _coverageRingText = MakeText(panelGo.transform, "RingText", 54, TextAnchor.MiddleCenter, Color.white);
+            var ringTextRect = _coverageRingText.rectTransform;
+            ringTextRect.anchorMin = new Vector2(1f, 1f);
+            ringTextRect.anchorMax = new Vector2(1f, 1f);
+            ringTextRect.pivot = new Vector2(1f, 1f);
+            ringTextRect.anchoredPosition = new Vector2(-18f, -14f);
+            ringTextRect.sizeDelta = new Vector2(168f, 168f);
+            _coverageRingText.text = "0%";
+
+            // ---- left column ----
+            _pointsText = MakeText(panelGo.transform, "Points", 50, TextAnchor.UpperLeft, new Color(1f, 0.87f, 0.4f));
+            SetRect(_pointsText.rectTransform, new Vector2(20f, -14f), new Vector2(420f, 58f));
+            _pointsText.text = "0 pts";
+
+            _timerText = MakeText(panelGo.transform, "Timer", 34, TextAnchor.UpperLeft, new Color(0.82f, 0.88f, 1f));
+            SetRect(_timerText.rectTransform, new Vector2(20f, -76f), new Vector2(420f, 40f));
+
+            _gradeText = MakeText(panelGo.transform, "Grade", 34, TextAnchor.UpperLeft, new Color(1f, 0.87f, 0.5f));
+            SetRect(_gradeText.rectTransform, new Vector2(20f, -120f), new Vector2(420f, 40f));
+
+            _sourceText = MakeText(panelGo.transform, "Source", 20, TextAnchor.UpperLeft, new Color(0.7f, 0.76f, 0.85f));
+            SetRect(_sourceText.rectTransform, new Vector2(20f, -160f), new Vector2(600f, 34f));
+
+            // ---- streak + flame ----
+            var flameGo = MakeImage(panelGo.transform, "Flame", new Color(1f, 0.6f, 0.2f));
+            _flame = flameGo.GetComponent<Image>();
+            var flameRect = _flame.rectTransform;
+            flameRect.anchorMin = new Vector2(0f, 1f);
+            flameRect.anchorMax = new Vector2(0f, 1f);
+            flameRect.pivot = new Vector2(0f, 1f);
+            flameRect.anchoredPosition = new Vector2(20f, -196f);
+            flameRect.sizeDelta = new Vector2(30f, 42f);
+            _flame.sprite = FlameSprite();
+            _flame.raycastTarget = false;
+            _flame.gameObject.SetActive(false);
+
+            _comboText = MakeText(panelGo.transform, "Combo", 32, TextAnchor.UpperLeft, new Color(1f, 0.72f, 0.25f));
+            SetRect(_comboText.rectTransform, new Vector2(58f, -198f), new Vector2(400f, 46f));
             _comboText.text = string.Empty;
             _comboText.gameObject.SetActive(false);
 
-            _timerText = MakeText(panelGo.transform, "Timer", 34, TextAnchor.UpperLeft, new Color(0.82f, 0.88f, 1f));
-            SetRect(_timerText.rectTransform, new Vector2(20f, -74f), new Vector2(600f, 40f));
-
-            _gradeText = MakeText(panelGo.transform, "Grade", 34, TextAnchor.UpperLeft, new Color(1f, 0.87f, 0.5f));
-            SetRect(_gradeText.rectTransform, new Vector2(20f, -120f), new Vector2(600f, 40f));
-
-            _sourceText = MakeText(panelGo.transform, "Source", 22, TextAnchor.UpperLeft, new Color(0.7f, 0.76f, 0.85f));
-            SetRect(_sourceText.rectTransform, new Vector2(20f, -162f), new Vector2(600f, 36f));
-
             _chorePanel = panelGo;
+        }
+
+        /// <summary>Builds one ring image in the panel's top-right slot.</summary>
+        private static Image MakeRing(Transform parent, string name, Color colour, out RectTransform rect)
+        {
+            var go = MakeImage(parent, name, colour);
+            rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-18f, -14f);
+            rect.sizeDelta = new Vector2(168f, 168f);
+
+            var image = go.GetComponent<Image>();
+            image.sprite = RingSprite();
+            image.raycastTarget = false;
+            return image;
         }
 
         private void BuildScanPanel(Transform parent)
@@ -292,8 +368,23 @@ namespace Chorewars.Runtime
             _summaryRoot = MakeImage(parent, "Summary", new Color(0f, 0f, 0f, 0.72f));
             Stretch(_summaryRoot.GetComponent<RectTransform>());
 
-            _summaryText = MakeText(_summaryRoot.transform, "SummaryText", 40, TextAnchor.MiddleCenter, Color.white);
-            Stretch(_summaryText.rectTransform);
+            // Big grade letter on its own element so it can slam in independently of the details.
+            _summaryGradeText = MakeText(_summaryRoot.transform, "GradeLetter", 150, TextAnchor.MiddleCenter, new Color(1f, 0.88f, 0.4f));
+            var gradeRect = _summaryGradeText.rectTransform;
+            gradeRect.anchorMin = new Vector2(0.5f, 0.5f);
+            gradeRect.anchorMax = new Vector2(0.5f, 0.5f);
+            gradeRect.pivot = new Vector2(0.5f, 0.5f);
+            gradeRect.anchoredPosition = new Vector2(0f, 46f);
+            gradeRect.sizeDelta = new Vector2(400f, 180f);
+            _summaryGradeText.text = "-";
+
+            _summaryText = MakeText(_summaryRoot.transform, "SummaryText", 36, TextAnchor.MiddleCenter, Color.white);
+            var detailRect = _summaryText.rectTransform;
+            detailRect.anchorMin = new Vector2(0.5f, 0.5f);
+            detailRect.anchorMax = new Vector2(0.5f, 0.5f);
+            detailRect.pivot = new Vector2(0.5f, 0.5f);
+            detailRect.anchoredPosition = new Vector2(0f, -74f);
+            detailRect.sizeDelta = new Vector2(580f, 170f);
 
             _summaryRoot.SetActive(false);
         }
@@ -329,15 +420,143 @@ namespace Chorewars.Runtime
         private void AnimatePunches()
         {
             float dt = Time.unscaledDeltaTime;
+            float now = Time.unscaledTime;
 
             _coveragePunch = Mathf.Max(0f, _coveragePunch - dt * 5f);
             _comboPunch = Mathf.Max(0f, _comboPunch - dt * 4f);
+            _flamePulse = Mathf.Max(0f, _flamePulse - dt * 3f);
 
-            if (_coverageText != null)
-                _coverageText.rectTransform.localScale = Vector3.one * (1f + _coveragePunch * 0.22f);
+            // Coverage ring eases toward the live value (exponential, frame-rate independent) and
+            // punches on every new cell.
+            _ringFill = Mathf.Lerp(_ringFill, _ringTarget, 1f - Mathf.Exp(-dt * 12f));
+
+            if (_coverageRing != null)
+            {
+                _coverageRing.fillAmount = _ringFill;
+                _coverageRing.rectTransform.localScale = Vector3.one * (1f + _coveragePunch * 0.10f);
+            }
+
+            if (_coverageRingText != null)
+            {
+                _coverageRingText.rectTransform.localScale = Vector3.one * (1f + _coveragePunch * 0.18f);
+                _coverageRingText.color = Color.Lerp(Color.white, new Color(0.6f, 1f, 0.78f), _coveragePunch);
+            }
+
+            // Points ticker: count toward the target, never allocating a string every frame.
+            if (Mathf.Abs(_displayedPoints - _targetPoints) >= 0.5f)
+            {
+                _displayedPoints = Mathf.MoveTowards(
+                    _displayedPoints, _targetPoints,
+                    Mathf.Max(1f, Mathf.Abs(_targetPoints - _displayedPoints) * 6f * dt));
+
+                Assign(_pointsText, $"{(int)_displayedPoints} pts");
+            }
 
             if (_comboText != null)
                 _comboText.rectTransform.localScale = Vector3.one * (1f + _comboPunch * 0.35f);
+
+            if (_flame != null && _flame.gameObject.activeSelf)
+            {
+                float pulse = 1f + Mathf.Sin(now * 12f) * 0.12f + _flamePulse * 0.35f;
+                _flame.rectTransform.localScale = new Vector3(pulse, pulse * 1.1f, 1f);
+                _flame.color = Color.Lerp(
+                    new Color(1f, 0.5f, 0.12f),
+                    new Color(1f, 0.86f, 0.32f),
+                    Mathf.PingPong(now * 4f, 1f));
+            }
+
+            // Grade letter slams from oversized down to rest, then the overlay does one punch.
+            if (_gradeSlam > 0f)
+            {
+                _gradeSlam = Mathf.Max(0f, _gradeSlam - dt * 2.4f);
+                float k = _gradeSlam * _gradeSlam;
+
+                if (_summaryGradeText != null)
+                    _summaryGradeText.rectTransform.localScale = Vector3.one * Mathf.Lerp(1f, 3.4f, k);
+            }
+
+            if (_summaryPunch > 0f)
+            {
+                _summaryPunch = Mathf.Max(0f, _summaryPunch - dt * 3.2f);
+
+                if (_summaryRoot != null)
+                    _summaryRoot.transform.localScale = Vector3.one * Mathf.Lerp(1f, 1.06f, _summaryPunch);
+            }
+        }
+
+        /// <summary>An annulus sprite for the coverage ring (transparent inside and out).</summary>
+        private static Sprite RingSprite()
+        {
+            if (_ringSprite != null) return _ringSprite;
+
+            const int size = 128;
+            const float inner = 0.74f;
+
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "HudRing",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+
+            var pixels = new Color32[size * size];
+            float radius = size * 0.5f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f - radius) / radius;
+                    float dy = (y + 0.5f - radius) / radius;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+
+                    float a = Mathf.Clamp01((d - inner) / 0.06f) * Mathf.Clamp01((1f - d) / 0.06f);
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                }
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false);
+
+            _ringSprite = Sprite.Create(tex, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+            return _ringSprite;
+        }
+
+        /// <summary>A soft teardrop for the streak flame.</summary>
+        private static Sprite FlameSprite()
+        {
+            if (_flameSprite != null) return _flameSprite;
+
+            const int size = 64;
+
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "HudFlame",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+
+            var pixels = new Color32[size * size];
+
+            for (int y = 0; y < size; y++)
+            {
+                // ny: 0 at the base, 1 at the tip.
+                float ny = (y + 0.5f) / size;
+                float halfWidth = 0.62f * Mathf.Sin(Mathf.Pow(ny, 0.75f) * Mathf.PI);
+
+                for (int x = 0; x < size; x++)
+                {
+                    float nx = ((x + 0.5f) / size) - 0.5f;
+                    float a = Mathf.Clamp01((halfWidth - Mathf.Abs(nx)) / 0.10f) * 0.85f;
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                }
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false);
+
+            _flameSprite = Sprite.Create(tex, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+            return _flameSprite;
         }
 
         private static void Assign(Text text, string value)

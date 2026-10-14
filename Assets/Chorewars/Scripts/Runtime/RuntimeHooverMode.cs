@@ -56,9 +56,15 @@ namespace Chorewars.Runtime
             float elapsed = Time.time - _startTime;
             float coverage = coverageMap != null ? coverageMap.ComputeCoveragePercent() : 0f;
 
+            // Live score uses the same formula as ScoringEngine (coverage x10 + room bonus). The
+            // session's efficiency/movement terms are never assigned anywhere, so this is not an
+            // estimate — it is exactly what the summary screen will show.
+            int points = (int)(coverage * 10f) + (celebration != null ? celebration.BonusPoints : 0);
+
             _hud?.SetCoverage(coverage);
+            _hud?.SetPoints(points);
             _hud?.SetTimer(_timeLimitSeconds - elapsed);
-            _hud?.SetGrade(EstimateGrade(coverage));
+            _hud?.SetGrade(EstimateGrade(points));
 
             bool manualEnd = _toolDriver != null && _toolDriver.EndRequested;
             if (coverage >= EndAtCoveragePercent || elapsed >= _timeLimitSeconds || manualEnd)
@@ -84,9 +90,12 @@ namespace Chorewars.Runtime
             return celebration != null ? celebration.BonusPoints : 0f;
         }
 
-        private static string EstimateGrade(float coveragePercent)
+        /// <summary>
+        /// Same thresholds as <see cref="ScoringEngine"/>, applied to the live score, so the grade on
+        /// the HUD during play matches the grade on the summary screen.
+        /// </summary>
+        private static string EstimateGrade(int points)
         {
-            int points = (int)(coveragePercent * 10f);
             return points switch
             {
                 >= 900 => "S",

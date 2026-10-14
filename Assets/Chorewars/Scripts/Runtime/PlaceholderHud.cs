@@ -18,6 +18,9 @@ namespace Chorewars.Runtime
         /// <summary>Raised when the player activates the START SCAN button.</summary>
         public event Action StartScanRequested;
 
+        /// <summary>Raised with a mode id when the player picks a chore from the mode menu.</summary>
+        public event Action<string> ModeSelected;
+
         private static Font _font;
         private static Sprite _ringSprite;
         private static Sprite _flameSprite;
@@ -52,6 +55,18 @@ namespace Chorewars.Runtime
         private Text _scanButtonLabel;
         private RectTransform _scanBarFill;
         private float _scanBarFullWidth = 552f;
+
+        private GameObject _modePanel;
+        private Text _modeStatusText;
+        private readonly List<ModeRow> _modeRows = new();
+
+        /// <summary>One selectable chore on the mode menu.</summary>
+        private sealed class ModeRow
+        {
+            public string Id;
+            public Image Background;
+            public Text Name;
+        }
 
         private GameObject _summaryRoot;
         private Text _summaryText;
@@ -496,6 +511,104 @@ namespace Chorewars.Runtime
             _scanButtonLabel.text = "START SCAN";
 
             _scanPanel = panelGo;
+            panelGo.SetActive(false);
+        }
+
+        // ---- Mode menu --------------------------------------------------------------------
+
+        private static readonly Color ModeIdle = new(0.14f, 0.16f, 0.22f, 0.92f);
+        private static readonly Color ModeSelectedColour = new(0.18f, 0.46f, 0.30f, 1f);
+
+        /// <summary>
+        /// Shows the chore menu. Built lazily on first use so it can read the mode catalog at the
+        /// moment it is actually needed rather than at HUD construction.
+        /// </summary>
+        public void ShowModePanel(string title, string status)
+        {
+            if (_modePanel == null) BuildModePanel();
+
+            Assign(_modeStatusText, status);
+            var titleText = _modePanel != null ? _modePanel.transform.Find("Title")?.GetComponent<Text>() : null;
+            Assign(titleText, title);
+            _modePanel.SetActive(true);
+        }
+
+        public void HideModePanel()
+        {
+            if (_modePanel != null) _modePanel.SetActive(false);
+        }
+
+        /// <summary>Highlights the chosen row so the player can see what they are about to run.</summary>
+        public void SetSelectedMode(string modeId)
+        {
+            foreach (var row in _modeRows)
+            {
+                if (row.Background == null) continue;
+                row.Background.color = row.Id == modeId ? ModeSelectedColour : ModeIdle;
+            }
+        }
+
+        private void BuildModePanel()
+        {
+            var panelGo = new GameObject("ModePanel", typeof(RectTransform));
+            panelGo.transform.SetParent(_canvas.transform, false);
+
+            var rect = panelGo.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var paper = MakeImage(panelGo.transform, "Paper", new Color(0.05f, 0.06f, 0.09f, 0.80f));
+            Stretch(paper.GetComponent<RectTransform>());
+
+            var title = MakeText(panelGo.transform, "Title", 46, TextAnchor.UpperLeft, Color.white);
+            SetRect(title.rectTransform, new Vector2(28f, -16f), new Vector2(600f, 56f));
+            title.text = "CHOOSE YOUR CHORE";
+
+            _modeStatusText = MakeText(panelGo.transform, "Status", 26, TextAnchor.UpperLeft, new Color(0.82f, 0.88f, 1f));
+            SetRect(_modeStatusText.rectTransform, new Vector2(28f, -74f), new Vector2(600f, 40f));
+
+            var modes = RuntimeModeCatalog.Modes;
+            float y = -120f;
+            const float rowHeight = 54f;
+            const float rowGap = 8f;
+
+            for (int i = 0; i < modes.Count; i++)
+            {
+                var info = modes[i];
+                float top = y - i * (rowHeight + rowGap);
+
+                var rowGo = MakeImage(panelGo.transform, $"Mode_{info.Id}", ModeIdle);
+                var rowRect = rowGo.GetComponent<RectTransform>();
+                SetRect(rowRect, new Vector2(28f, top), new Vector2(584f, rowHeight));
+
+                var button = rowGo.AddComponent<Button>();
+                button.targetGraphic = rowGo.GetComponent<Image>();
+
+                string id = info.Id;
+                button.onClick.AddListener(() =>
+                {
+                    SetSelectedMode(id);
+                    ModeSelected?.Invoke(id);
+                });
+
+                var name = MakeText(rowGo.transform, "Name", 30, TextAnchor.MiddleLeft, Color.white);
+                SetRect(name.rectTransform, new Vector2(16f, 0f), new Vector2(250f, rowHeight));
+                name.text = info.DisplayName;
+
+                var blurb = MakeText(rowGo.transform, "Blurb", 21, TextAnchor.MiddleRight, new Color(0.78f, 0.84f, 0.95f));
+                var blurbRect = blurb.rectTransform;
+                blurbRect.anchorMin = new Vector2(0f, 0f);
+                blurbRect.anchorMax = new Vector2(1f, 1f);
+                blurbRect.offsetMin = new Vector2(270f, 0f);
+                blurbRect.offsetMax = new Vector2(-16f, 0f);
+                blurb.text = info.Blurb;
+
+                _modeRows.Add(new ModeRow { Id = info.Id, Background = rowGo.GetComponent<Image>(), Name = name });
+            }
+
+            _modePanel = panelGo;
             panelGo.SetActive(false);
         }
 

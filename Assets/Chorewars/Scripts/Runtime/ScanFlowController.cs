@@ -26,7 +26,7 @@ namespace Chorewars.Runtime
         private DollhousePresenter _presenter;
         private Transform _dollhouseRoot;
         private Camera _camera;
-        private RuntimeHooverMode _mode;
+        private RuntimeCoverageMode _mode;
 
         private Phase _phase = Phase.Ready;
         private float _presentUntil = -1f;
@@ -36,7 +36,7 @@ namespace Chorewars.Runtime
                               ScanToDollhousePipeline pipeline,
                               DollhousePresenter presenter,
                               Transform dollhouseRoot,
-                              RuntimeHooverMode mode,
+                              RuntimeCoverageMode mode,
                               Camera camera)
         {
             _hud = hud ?? throw new ArgumentNullException(nameof(hud));

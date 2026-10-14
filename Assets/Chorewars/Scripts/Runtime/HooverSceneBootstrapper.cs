@@ -25,10 +25,30 @@ namespace Chorewars.Runtime
 
         private static HooverSceneBootstrapper _instance;
 
-        private RuntimeHooverMode _mode;
+        private RuntimeCoverageMode _mode;
         private string _pendingScene;
         private float _giveUpAt;
         private Camera _camera;
+        private bool _built;
+
+        // Everything the mode needs is built up-front and held here, so the mode itself can be stood
+        // up later, at the moment the player picks one from the menu.
+        private Transform _runtimeRoot;
+        private PlaceholderHud _hud;
+        private CoverageMap _coverageMap;
+        private CoverageFloorVisualizer _floorVisualizer;
+        private Transform _tool;
+        private PathTracker _pathTracker;
+        private PlaceholderToolDriver _toolDriver;
+        private SpatialMeshTracker _meshTracker;
+        private RoomCleanCelebration _celebration;
+        private DollhouseManager _dollhouse;
+        private Transform _dollhouseRoot;
+        private ScanToDollhousePipeline _pipeline;
+        private DollhousePresenter _presenter;
+        private IScanSource _scanSource;
+        private Bounds _bounds;
+        private string _sourceLabel;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
@@ -50,7 +70,7 @@ namespace Chorewars.Runtime
         private void Queue(Scene scene)
         {
             if (Array.IndexOf(ModeScenes, scene.name) < 0) return;
-            if (_mode != null) return;
+            if (_built || _mode != null) return;
 
             _pendingScene = scene.name;
             _giveUpAt = Time.unscaledTime + 5f;
@@ -168,28 +188,14 @@ namespace Chorewars.Runtime
             var toolDriver = tool.AddComponent<PlaceholderToolDriver>();
             toolDriver.Configure(FindRightController(), bounds, toolSpeedMetersPerSecond, toolHeightMeters);
 
-            // 5) The mode itself.
-            var chore = ScriptableObject.CreateInstance<ChoreDefinition>();
-            chore.choreId = "hoover";
-            chore.displayName = "Standard Coverage";
-            chore.type = ChoreType.Hoovering;
-            chore.targetCoveragePercent = 80f;
-
-            var modeGo = new GameObject("RuntimeHooverMode");
-            modeGo.transform.SetParent(root, false);
-            var mode = modeGo.AddComponent<RuntimeHooverMode>();
-            mode.chore = chore;
-            mode.trackedTool = tool.transform;
-            mode.coverageMap = coverageMap;
-            mode.pathTracker = pathTracker;
-            mode.spatialMeshTracker = meshTracker;
+            // 5) The mode is not built yet. The player picks one from the menu below, so the room,
+            //    the scan and the dollhouse are all built first and then a mode is stood up on demand.
 
             // 6) Placeholder HUD + summary.
             var hudGo = new GameObject("PlaceholderHud");
             hudGo.transform.SetParent(root, false);
             var hud = hudGo.AddComponent<PlaceholderHud>();
             hud.Build(camera);
-            hud.SetSource($"{source} | {bounds.size.x:0.0}x{bounds.size.z:0.0} m | WASD hoover, E end, J juice");
 
             // 6b) Juice: puffs + streak + procedural ticks for every newly cleaned cell.
             var juice = roomGo.AddComponent<ChoreJuice>();
@@ -225,19 +231,70 @@ namespace Chorewars.Runtime
                 profileGo.AddComponent<PlayerProfile>();
             }
 
-            // 8) Flow: scan (button + progress + done), dollhouse presented, then chore begins.
-            mode.ConfigureRuntime(hud, floorVisualizer, toolDriver, timeLimitSeconds);
-            mode.celebration = celebration;
-            mode.dollhouse = dollhouse;
+            // 8) Hold on to everything the chosen mode will need, then show the chore menu.
+            _runtimeRoot = root;
+            _hud = hud;
+            _coverageMap = coverageMap;
+            _floorVisualizer = floorVisualizer;
+            _tool = tool.transform;
+            _pathTracker = pathTracker;
+            _toolDriver = toolDriver;
+            _meshTracker = meshTracker;
+            _celebration = celebration;
+            _dollhouse = dollhouse;
+            _dollhouseRoot = dollhouseGo.transform;
+            _pipeline = pipeline;
+            _presenter = presenter;
+            _scanSource = scanSource;
+            _bounds = bounds;
+            _sourceLabel = source;
+            _camera = camera;
 
-            var flowGo = new GameObject("ScanFlow");
-            flowGo.transform.SetParent(root, false);
-            var flow = flowGo.AddComponent<ScanFlowController>();
-            flow.Configure(hud, scanSource, pipeline, presenter, dollhouseGo.transform, mode, camera);
+            hud.ModeSelected -= OnModeSelected;
+            hud.ModeSelected += OnModeSelected;
+            hud.SetChorePanelVisible(false);
+            hud.ShowModePanel("CHOOSE YOUR CHORE", "Pick a chore, then map the room.");
 
+            Debug.Log($"{LogPrefix}: runtime ready — {RuntimeModeCatalog.Modes.Count} modes available (limit {timeLimitSeconds:0}s).");
+            _built = true;
+        }
+
+        /// <summary>
+        /// Stands up the chosen mode, wires it to the room that is already built, and starts the scan
+        /// flow. One mode per scene build: the room, dollhouse and scan are shared, so changing chore
+        /// means reloading.
+        /// </summary>
+        private void OnModeSelected(string modeId)
+        {
+            if (_mode != null) return;
+
+            if (!RuntimeModeCatalog.TryGet(modeId, out var info))
+            {
+                Debug.LogWarning($"{LogPrefix}: unknown mode '{modeId}'.");
+                return;
+            }
+
+            var mode = info.Build();
+            mode.transform.SetParent(_runtimeRoot, false);
+            mode.chore = RuntimeModeCatalog.CreateChore(info, 80f);
+            mode.trackedTool = _tool;
+            mode.coverageMap = _coverageMap;
+            mode.pathTracker = _pathTracker;
+            mode.spatialMeshTracker = _meshTracker;
+            mode.ConfigureRuntime(_hud, _floorVisualizer, _toolDriver, _bounds, timeLimitSeconds);
+            mode.celebration = _celebration;
+            mode.dollhouse = _dollhouse;
             _mode = mode;
 
-            Debug.Log($"{LogPrefix}: Hoover runtime ready — awaiting room scan (limit {timeLimitSeconds:0}s).");
+            _hud.HideModePanel();
+            _hud.SetSource($"{_sourceLabel} | {_bounds.size.x:0.0}x{_bounds.size.z:0.0} m | {info.DisplayName} | WASD move, E end, J juice");
+
+            var flowGo = new GameObject("ScanFlow");
+            flowGo.transform.SetParent(_runtimeRoot, false);
+            var flow = flowGo.AddComponent<ScanFlowController>();
+            flow.Configure(_hud, _scanSource, _pipeline, _presenter, _dollhouseRoot, mode, _camera);
+
+            Debug.Log($"{LogPrefix}: '{info.DisplayName}' selected — awaiting room scan.");
         }
 
         private static Camera FindCamera()

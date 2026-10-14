@@ -114,7 +114,15 @@ namespace Chorewars.Runtime
             _roomGeometry[room.roomId] = geometry;
 
             var renderers = geometry.GetComponentsInChildren<Renderer>();
-            dollhouseManager.RegisterRoom(room.roomId, renderers);
+
+            // Only the floor takes the clean/dirty colour. The walls are a translucent shell you are
+            // meant to see the miniature through, and restyling them with the opaque clean/dirty
+            // material hid everything inside the room.
+            var floorRenderer = geometry.transform.Find("Floor")?.GetComponent<Renderer>();
+            dollhouseManager.RegisterRoom(
+                room.roomId,
+                renderers,
+                floorRenderer != null ? new[] { floorRenderer } : renderers);
 
             Debug.Log($"[ScanToDollhouse] {room.roomId}: {room.boundsXZ.width:0.0}x{room.boundsXZ.height:0.0} m " +
                       $"-> {renderers.Length} renderers (rooms so far: {_rooms.Count})");

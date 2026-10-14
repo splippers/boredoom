@@ -68,6 +68,13 @@ namespace Chorewars.Dollhouse
         {
             public string roomId;
             public List<Renderer> renderers = new();
+
+            // The subset of renderers allowed to change colour as the room is cleaned. Not every
+            // renderer in a room is fair game: a miniature's walls are a translucent shell you are
+            // meant to see through, and restyling them with the opaque clean/dirty material hides
+            // everything the room contains.
+            public List<Renderer> tintRenderers = new();
+
             public float coveragePercent;
             public bool isClean;
 
@@ -77,6 +84,14 @@ namespace Chorewars.Dollhouse
         }
 
         public void RegisterRoom(string roomId, Renderer[] roomRenderers)
+            => RegisterRoom(roomId, roomRenderers, roomRenderers);
+
+        /// <summary>
+        /// Registers a room, with an explicit list of the renderers whose appearance should track
+        /// cleanliness. Everything in <paramref name="roomRenderers"/> counts as part of the room (it
+        /// is what the celebration pulses); only <paramref name="tintRenderers"/> are restyled.
+        /// </summary>
+        public void RegisterRoom(string roomId, Renderer[] roomRenderers, Renderer[] tintRenderers)
         {
             if (_rooms.ContainsKey(roomId)) return;
 
@@ -84,6 +99,7 @@ namespace Chorewars.Dollhouse
             {
                 roomId = roomId,
                 renderers = new List<Renderer>(roomRenderers),
+                tintRenderers = new List<Renderer>(tintRenderers ?? roomRenderers),
                 isClean = false
             };
             _rooms[roomId] = room;
@@ -170,7 +186,7 @@ namespace Chorewars.Dollhouse
                 block.SetColor(ColorId, c);
             }
 
-            foreach (var r in room.renderers)
+            foreach (var r in room.tintRenderers)
             {
                 if (r == null) continue;
 

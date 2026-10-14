@@ -92,7 +92,7 @@ namespace Chorewars.Integration
             });
 
             using var req = new UnityWebRequest($"{apiBaseUrl}/context/ingest", "POST");
-            byte bodyRaw = Encoding.UTF8.GetBytes(json);
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
             req.uploadHandler = new UploadHandlerRaw(bodyRaw);
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Authorization", $"Bearer {bearerToken}");

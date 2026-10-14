@@ -34,6 +34,17 @@ namespace Chorewars.Dollhouse
 
         public Vector3 WorldToDollhouse(Vector3 worldPos) => dollhouseOrigin + worldPos * scale;
 
+        /// <summary>
+        /// Runtime configuration for the clean/dirty materials. When the dollhouse is built from
+        /// code these serialized fields are null, which would make coverage tinting a no-op.
+        /// </summary>
+        public void ConfigureMaterials(Material dirty, Material clean, Material transitioning = null)
+        {
+            dirtyMat = dirty;
+            cleanMat = clean;
+            transitioningMat = transitioning;
+        }
+
         private class DollhouseRoom
         {
             public string roomId;

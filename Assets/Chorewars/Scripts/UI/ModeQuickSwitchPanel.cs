@@ -473,7 +473,7 @@ namespace Chorewars.UI
                 SceneManager.LoadScene(sceneName);
         }
 
-        private static void EnsureVrEventSystem()
+        public static void EnsureVrEventSystem()
         {
             var systems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include);
             EventSystem es = systems.Length > 0 ? systems[0] : null;
@@ -490,8 +490,12 @@ namespace Chorewars.UI
                 DontDestroyOnLoad(esGo);
             }
 
-            foreach (var m in es.GetComponents<BaseInputModule>())
-                Destroy(m);
+            // If a module is already present, keep it. Destroy() is deferred to the end of the
+            // frame, so destroying the module and immediately re-adding it makes the "already has
+            // module" check inside the Try* helpers see the doomed component and skip adding a
+            // replacement — which would leave the EventSystem with no input module at all when a
+            // second caller (e.g. the placeholder HUD) ensures the EventSystem in the same frame.
+            if (es.GetComponent<BaseInputModule>() != null) return;
 
             if (!TryAddVrInputModule(es.gameObject) && !TryAddInputSystemUiInputModule(es.gameObject))
                 es.gameObject.AddComponent<StandaloneInputModule>();
@@ -506,7 +510,7 @@ namespace Chorewars.UI
             return true;
         }
 
-        private static void TryInstallVrRaycaster(GameObject canvasGo)
+        public static void TryInstallVrRaycaster(GameObject canvasGo)
         {
             foreach (var gr in canvasGo.GetComponents<GraphicRaycaster>())
                 Destroy(gr);

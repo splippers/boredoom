@@ -46,7 +46,7 @@ namespace Chorewars.UI
             _lastResult = result;
 
             if (choreTitleLabel != null)
-                choreTitleLabel.text = result.session?.chore ?? "Chore";
+                choreTitleLabel.text = result.session?.chore?.displayName ?? "Chore";
 
             if (gradeLabel != null)
             {

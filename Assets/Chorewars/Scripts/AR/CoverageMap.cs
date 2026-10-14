@@ -20,6 +20,19 @@ namespace Chorewars.AR
             _max = fixedMaxXZ;
         }
 
+        /// <summary>
+        /// Override the fixed coverage bounds at runtime (e.g. from a room provider).
+        /// Keeps coverage % meaningful when the play area is not the default ±2 m box.
+        /// </summary>
+        public void SetBounds(Vector2 minXZ, Vector2 maxXZ)
+        {
+            useFixedBounds = true;
+            fixedMinXZ = minXZ;
+            fixedMaxXZ = maxXZ;
+            _min = minXZ;
+            _max = maxXZ;
+        }
+
         public void MarkVisitedWorldPosition(Vector3 worldPos)
         {
             var xz = new Vector2(worldPos.x, worldPos.z);
@@ -45,6 +58,42 @@ namespace Chorewars.AR
             int total = Mathf.Max(1, width * height);
 
             return Mathf.Clamp01(_visited.Count / (float)total) * 100f;
+        }
+
+        /// <summary>
+        /// Compute coverage percentage restricted to a 2D axis-aligned rectangle (XZ world space).
+        /// A cell belongs to the rect iff its centre lies inside it; the same test is used for the
+        /// numerator and denominator so a fully cleaned room reads exactly 100% (an index-span
+        /// denominator would leave it short of the dollhouse "clean" threshold).
+        /// </summary>
+        public float ComputeCoveragePercent(Rect rectXZ)
+        {
+            if (cellSizeMeters <= 0f) return 0f;
+            if (rectXZ.width <= 0f || rectXZ.height <= 0f) return 0f;
+
+            var minCell = WorldToCell(new Vector2(rectXZ.xMin, rectXZ.yMin));
+            var maxCell = WorldToCell(new Vector2(rectXZ.xMax, rectXZ.yMax));
+
+            int totalInRect = 0;
+            int visitedInRect = 0;
+
+            for (int cx = minCell.x; cx <= maxCell.x; cx++)
+            {
+                float wx = cx * cellSizeMeters + cellSizeMeters * 0.5f;
+                if (wx < rectXZ.xMin || wx > rectXZ.xMax) continue;
+
+                for (int cz = minCell.y; cz <= maxCell.y; cz++)
+                {
+                    float wz = cz * cellSizeMeters + cellSizeMeters * 0.5f;
+                    if (wz < rectXZ.yMin || wz > rectXZ.yMax) continue;
+
+                    totalInRect++;
+                    if (_visited.Contains(new Vector2Int(cx, cz))) visitedInRect++;
+                }
+            }
+
+            if (totalInRect == 0) return 0f;
+            return Mathf.Clamp01(visitedInRect / (float)totalInRect) * 100f;
         }
 
         private Vector2Int WorldToCell(Vector2 xz)

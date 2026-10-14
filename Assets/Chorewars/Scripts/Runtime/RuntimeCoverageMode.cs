@@ -115,6 +115,12 @@ namespace Chorewars.Runtime
             float elapsed = ElapsedSeconds;
             float coverage = coverageMap != null ? coverageMap.ComputeCoveragePercent() : 0f;
 
+            // Let the mode act first — collect an item, resample its grid, advance its ghost — so the
+            // score computed below already reflects what happened on this very frame. A mode that scores
+            // from its own state would otherwise leave the HUD a frame behind the summary.
+            OnModeTick(elapsed, coverage);
+            if (_ended) return;
+
             // Live score uses the same formula the base End() uses (coverage x10 + truncated bonus),
             // so the number on the HUD during play is exactly the number the summary will show.
             int points = (int)(coverage * 10f) + (int)GetBonusPoints();
@@ -123,8 +129,6 @@ namespace Chorewars.Runtime
             Hud?.SetPoints(points);
             Hud?.SetTimer(_timeLimitSeconds - elapsed);
             Hud?.SetGrade(EstimatedGrade(points));
-
-            OnModeTick(elapsed, coverage);
 
             bool manualEnd = ToolDriver != null && ToolDriver.EndRequested;
             if (coverage >= EndAtCoveragePercent || elapsed >= _timeLimitSeconds || manualEnd)

@@ -68,6 +68,14 @@ namespace Chorewars.Runtime
                     Blurb = "Trace a picture into the floor as you go.",
                     ExportPrefix = "mowing-art",
                     Build = () => New<RuntimeMowingArtMode>("RuntimeMowingArtMode")
+                },
+                new ModeInfo
+                {
+                    Id = "declutter-dash",
+                    DisplayName = "Declutter Dash",
+                    Blurb = "Race the clock to clear the clutter you can reach.",
+                    ExportPrefix = "declutter-dash",
+                    Build = () => New<RuntimeDeclutterDashMode>("RuntimeDeclutterDashMode")
                 }
             };
         }

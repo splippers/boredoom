@@ -208,8 +208,13 @@ namespace Chorewars.Runtime
 
             var presenter = dollhouseGo.AddComponent<DollhousePresenter>();
 
+            // 7b) Room-clean celebration: glow + confetti + floating points + haptics + slow-mo.
+            var celebration = dollhouseGo.AddComponent<RoomCleanCelebration>();
+            celebration.Configure(dollhouse, camera);
+
             // 8) Flow: scan (button + progress + done), dollhouse presented, then chore begins.
             mode.ConfigureRuntime(hud, floorVisualizer, toolDriver, timeLimitSeconds);
+            mode.celebration = celebration;
 
             var flowGo = new GameObject("ScanFlow");
             flowGo.transform.SetParent(root, false);

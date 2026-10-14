@@ -189,7 +189,7 @@ namespace Chorewars.Runtime
             }
         }
 
-        private static Sprite MakeRadialSprite(int size)
+        internal static Sprite MakeRadialSprite(int size)
         {
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
             {

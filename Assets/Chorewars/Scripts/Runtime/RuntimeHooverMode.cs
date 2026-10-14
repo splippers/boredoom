@@ -21,6 +21,9 @@ namespace Chorewars.Runtime
         private bool _begun;
         private bool _ended;
 
+        /// <summary>Supplies the per-room bonus. Optional; without it the bonus is zero.</summary>
+        public RoomCleanCelebration celebration;
+
         public void ConfigureRuntime(
             PlaceholderHud hud,
             CoverageFloorVisualizer floorVisualizer,
@@ -71,6 +74,14 @@ namespace Chorewars.Runtime
                 $"[BoreDOOM] Hoover ended — grade {result?.grade}, points {result?.totalPoints}, " +
                 $"coverage {result?.session?.coveragePercent:0}%");
             _hud?.ShowSummary(result);
+        }
+
+        /// <summary>
+        /// Per-room bonus, sourced from the celebration so the score and the "+points" popups agree.
+        /// </summary>
+        protected override float GetBonusPoints()
+        {
+            return celebration != null ? celebration.BonusPoints : 0f;
         }
 
         private static string EstimateGrade(float coveragePercent)

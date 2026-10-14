@@ -31,6 +31,14 @@ namespace Chorewars.Dollhouse
         private readonly Dictionary<string, DollhouseRoom> _rooms = new();
         private int _totalRooms;
         private int _cleanRooms;
+        private bool _allCleanAnnounced;
+
+        /// <summary>
+        /// Raised once per room, the first time it reaches the clean threshold, with the room id and
+        /// its miniature root transform. Lets presentation layers (celebration, audio, haptics) hang
+        /// off a genuine event instead of polling coverage.
+        /// </summary>
+        public event Action<string, Transform> RoomCleaned;
 
         public Vector3 WorldToDollhouse(Vector3 worldPos) => dollhouseOrigin + worldPos * scale;
 
@@ -80,14 +88,44 @@ namespace Chorewars.Dollhouse
                 room.isClean = true;
                 _cleanRooms++;
                 StartCoroutine(AnimateRoomTransition(room, 0f, 1f));
+                RoomCleaned?.Invoke(roomId, CommonRoot(room.renderers));
             }
             else if (!room.isClean)
             {
                 SetRoomCleanVisual(room, coveragePct / 100f);
             }
 
-            if (_cleanRooms >= _totalRooms && _totalRooms > 0)
+            // Announce the fully-clean dollhouse exactly once. Without the guard this ran on every
+            // coverage push (~4x per room per second), spawning a share-card coroutine each time.
+            if (!_allCleanAnnounced && _totalRooms > 0 && _cleanRooms >= _totalRooms)
+            {
+                _allCleanAnnounced = true;
                 OnAllRoomsClean();
+            }
+        }
+
+        /// <summary>Lowest common ancestor of a room's renderers — the miniature room root we can pulse.</summary>
+        private static Transform CommonRoot(List<Renderer> renderers)
+        {
+            Transform candidate = null;
+
+            foreach (var renderer in renderers)
+            {
+                if (renderer == null) continue;
+
+                if (candidate == null)
+                {
+                    candidate = renderer.transform;
+                    continue;
+                }
+
+                while (candidate != null && !renderer.transform.IsChildOf(candidate))
+                    candidate = candidate.parent;
+
+                if (candidate == null) return null;
+            }
+
+            return candidate;
         }
 
         private void SetRoomCleanVisual(DollhouseRoom room, float t)

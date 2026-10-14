@@ -84,6 +84,14 @@ namespace Chorewars.Runtime
                     Blurb = "Don't clean a thing — survey the room and file a mess report.",
                     ExportPrefix = "chaos-assessment",
                     Build = () => New<RuntimeChaosAssessmentMode>("RuntimeChaosAssessmentMode")
+                },
+                new ModeInfo
+                {
+                    Id = "chorewars-battle",
+                    DisplayName = "ChoreWars Battle",
+                    Blurb = "Race an opponent to the higher coverage.",
+                    ExportPrefix = "chorewars-battle",
+                    Build = () => New<RuntimeBattleMode>("RuntimeBattleMode")
                 }
             };
         }

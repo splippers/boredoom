@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,16 @@ namespace Chorewars.AR
         [SerializeField] private bool useFixedBounds = true;
         [SerializeField] private Vector2 fixedMinXZ = new(-2f, -2f);
         [SerializeField] private Vector2 fixedMaxXZ = new(2f, 2f);
+
+        /// <summary>Raised with the world-space centre of a cell the first time it becomes visited.</summary>
+        /// <remarks>
+        /// Lets presentation layers (juice, audio, hints) react to genuinely new progress instead of
+        /// polling the whole map every frame. Only fires once per cell for the lifetime of the map.
+        /// </remarks>
+        public event Action<Vector3> CellFirstVisited;
+
+        /// <summary>Edge length of one coverage cell, in metres.</summary>
+        public float CellSizeMeters => cellSizeMeters;
 
         private readonly HashSet<Vector2Int> _visited = new();
         private Vector2 _min;
@@ -43,7 +54,18 @@ namespace Chorewars.AR
             }
 
             var cell = WorldToCell(xz);
-            _visited.Add(cell);
+            if (!_visited.Add(cell)) return;
+
+            CellFirstVisited?.Invoke(CellCentreWorld(cell, worldPos.y));
+        }
+
+        /// <summary>World-space centre of a cell, keeping the caller's height.</summary>
+        private Vector3 CellCentreWorld(Vector2Int cell, float y)
+        {
+            return new Vector3(
+                cell.x * cellSizeMeters + cellSizeMeters * 0.5f,
+                y,
+                cell.y * cellSizeMeters + cellSizeMeters * 0.5f);
         }
 
         public float ComputeCoveragePercent()

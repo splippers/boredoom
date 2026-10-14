@@ -27,6 +27,9 @@ namespace Chorewars.Runtime
         private Text _timerText;
         private Text _gradeText;
         private Text _sourceText;
+        private Text _comboText;
+        private float _coveragePunch;
+        private float _comboPunch;
 
         private GameObject _scanPanel;
         private Text _scanTitleText;
@@ -91,6 +94,25 @@ namespace Chorewars.Runtime
         {
             if (_chorePanel != null) _chorePanel.SetActive(visible);
         }
+
+        /// <summary>Shows the consecutive-new-cell streak. Hidden below 2 so it stays an event.</summary>
+        public void SetCombo(int combo)
+        {
+            if (_comboText == null) return;
+
+            if (combo < 2)
+            {
+                _comboText.gameObject.SetActive(false);
+                return;
+            }
+
+            _comboText.gameObject.SetActive(true);
+            Assign(_comboText, combo >= 10 ? $"STREAK x{combo}  \u2022 FIRE" : $"STREAK x{combo}");
+            _comboPunch = 1f;
+        }
+
+        /// <summary>One-frame scale punch on the coverage readout; called for every new cell.</summary>
+        public void PunchCoverage() => _coveragePunch = 1f;
 
         // ---- Scan panel -------------------------------------------------------------------
 
@@ -176,6 +198,17 @@ namespace Chorewars.Runtime
 
             _coverageText = MakeText(panelGo.transform, "Coverage", 46, TextAnchor.UpperLeft, Color.white);
             SetRect(_coverageText.rectTransform, new Vector2(20f, -12f), new Vector2(600f, 56f));
+
+            // Right-anchored with a top-right pivot so the streak punch scales from that corner.
+            _comboText = MakeText(panelGo.transform, "Combo", 32, TextAnchor.UpperRight, new Color(1f, 0.72f, 0.25f));
+            var comboRect = _comboText.rectTransform;
+            comboRect.anchorMin = new Vector2(1f, 1f);
+            comboRect.anchorMax = new Vector2(1f, 1f);
+            comboRect.pivot = new Vector2(1f, 1f);
+            comboRect.anchoredPosition = new Vector2(-20f, -16f);
+            comboRect.sizeDelta = new Vector2(300f, 46f);
+            _comboText.text = string.Empty;
+            _comboText.gameObject.SetActive(false);
 
             _timerText = MakeText(panelGo.transform, "Timer", 34, TextAnchor.UpperLeft, new Color(0.82f, 0.88f, 1f));
             SetRect(_timerText.rectTransform, new Vector2(20f, -74f), new Vector2(600f, 40f));
@@ -284,7 +317,27 @@ namespace Chorewars.Runtime
 
             transform.rotation = Quaternion.LookRotation(transform.position - cameraTransform.position, Vector3.up);
 
+            AnimatePunches();
+
             if (_summaryHideAt > 0f && Time.unscaledTime >= _summaryHideAt) HideSummary();
+        }
+
+        /// <summary>
+        /// Decays the scale punches. Applied as localScale so the Text layout itself is untouched
+        /// (no rebuilds, no allocation) and it composes with the panel's own scaling.
+        /// </summary>
+        private void AnimatePunches()
+        {
+            float dt = Time.unscaledDeltaTime;
+
+            _coveragePunch = Mathf.Max(0f, _coveragePunch - dt * 5f);
+            _comboPunch = Mathf.Max(0f, _comboPunch - dt * 4f);
+
+            if (_coverageText != null)
+                _coverageText.rectTransform.localScale = Vector3.one * (1f + _coveragePunch * 0.22f);
+
+            if (_comboText != null)
+                _comboText.rectTransform.localScale = Vector3.one * (1f + _comboPunch * 0.35f);
         }
 
         private static void Assign(Text text, string value)

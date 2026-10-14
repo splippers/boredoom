@@ -191,6 +191,10 @@ namespace Chorewars.Runtime
             hud.Build(camera);
             hud.SetSource($"{source} | {bounds.size.x:0.0}x{bounds.size.z:0.0} m | WASD or arrows to hoover, E to end");
 
+            // 6b) Juice: puffs + streak + procedural ticks for every newly cleaned cell.
+            var juice = roomGo.AddComponent<ChoreJuice>();
+            juice.Configure(coverageMap, hud, bounds.min.y);
+
             // 7) Dollhouse + scan -> dollhouse pipeline (placeholder clean/dirty materials).
             var dollhouseGo = new GameObject("Dollhouse");
             dollhouseGo.transform.SetParent(root, false);

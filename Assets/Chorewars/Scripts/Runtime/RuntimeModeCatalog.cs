@@ -60,6 +60,14 @@ namespace Chorewars.Runtime
                     Blurb = "Race your own best run, replayed beside you.",
                     ExportPrefix = "ghost-run",
                     Build = () => New<RuntimeGhostRunMode>("RuntimeGhostRunMode")
+                },
+                new ModeInfo
+                {
+                    Id = "mowing-art",
+                    DisplayName = "Mowing Art",
+                    Blurb = "Trace a picture into the floor as you go.",
+                    ExportPrefix = "mowing-art",
+                    Build = () => New<RuntimeMowingArtMode>("RuntimeMowingArtMode")
                 }
             };
         }

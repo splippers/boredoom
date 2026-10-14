@@ -34,6 +34,7 @@ namespace Chorewars.Runtime
         private Text _gradeText;
         private Text _sourceText;
         private Text _comboText;
+        private Text _objectiveText;
         private Image _coverageRing;
         private Text _coverageRingText;
         private Image _flame;
@@ -82,6 +83,7 @@ namespace Chorewars.Runtime
         private int _lastCoveragePercent = int.MinValue;
         private int _lastTimerSecond = int.MinValue;
         private string _lastGrade;
+        private string _lastObjective;
 
         /// <summary>Row layout for the per-room breakdown: built once, shown/hidden per session.</summary>
         private sealed class RoomBar
@@ -195,6 +197,19 @@ namespace Chorewars.Runtime
 
         /// <summary>One-frame scale punch on the coverage ring; called for every new cell.</summary>
         public void PunchCoverage() => _coveragePunch = 1f;
+
+        /// <summary>
+        /// Mode-specific objective read-out (Ghost Run's pace, Declutter Dash's remaining clutter...).
+        /// Cached by string so a per-frame caller does not allocate; pass null or empty to clear it.
+        /// </summary>
+        public void SetObjective(string text)
+        {
+            if (_objectiveText == null) return;
+            if (_lastObjective == text) return;
+
+            _lastObjective = text;
+            Assign(_objectiveText, text ?? string.Empty);
+        }
 
         // ---- Scan panel -------------------------------------------------------------------
 
@@ -410,6 +425,11 @@ namespace Chorewars.Runtime
 
             _sourceText = MakeText(panelGo.transform, "Source", 20, TextAnchor.UpperLeft, new Color(0.7f, 0.76f, 0.85f));
             SetRect(_sourceText.rectTransform, new Vector2(20f, -160f), new Vector2(600f, 34f));
+
+            // Mode-specific objective line (e.g. the Ghost Run pace). Hidden until a mode sets one.
+            _objectiveText = MakeText(panelGo.transform, "Objective", 24, TextAnchor.UpperLeft, new Color(0.55f, 0.85f, 1f));
+            SetRect(_objectiveText.rectTransform, new Vector2(20f, -232f), new Vector2(600f, 28f));
+            _objectiveText.text = string.Empty;
 
             // ---- streak + flame ----
             var flameGo = MakeImage(panelGo.transform, "Flame", new Color(1f, 0.6f, 0.2f));

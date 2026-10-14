@@ -52,6 +52,14 @@ namespace Chorewars.Runtime
                     Blurb = "Work in tidy stripes — a cleared stripe lights up.",
                     ExportPrefix = "perfect-grid",
                     Build = () => New<RuntimePerfectGridMode>("RuntimePerfectGridMode")
+                },
+                new ModeInfo
+                {
+                    Id = "ghost-run",
+                    DisplayName = "Ghost Run",
+                    Blurb = "Race your own best run, replayed beside you.",
+                    ExportPrefix = "ghost-run",
+                    Build = () => New<RuntimeGhostRunMode>("RuntimeGhostRunMode")
                 }
             };
         }

@@ -27,12 +27,17 @@ namespace Chorewars.Runtime
     {
         private const float EndAtCoveragePercent = 100f;
 
-        /// <summary>Ghost trail sampling interval, in seconds, and a hard cap on saved points.</summary>
-        private const float TrailSampleInterval = 0.1f;
+        /// <summary>Ghost trail sampling: a minimum distance between saved points, and a hard cap.</summary>
+        /// <remarks>
+        /// Distance, not time. A time-based sample spaces points by speed, so a fast sweep leaves gaps
+        /// wider than a coverage cell and the saved ghost under-represents the run it recorded. A fixed
+        /// spacing keeps the ghost faithful no matter how fast the player moves, and drops the long run
+        /// of identical points a time-based sample records while the tool sits still.
+        /// </remarks>
+        private const float TrailSampleDistance = 0.08f;
         private const int MaxTrailPoints = 3000;
 
         private readonly List<Vector3> _trail = new();
-        private float _lastTrailSampleAt;
         private float _startTime;
         private float _timeLimitSeconds = 90f;
         private bool _begun;
@@ -85,10 +90,10 @@ namespace Chorewars.Runtime
         {
             FloorVisualizer?.Mark(worldPos);
 
-            // Ghost trail: sampled sparsely and capped, so the saved path stays small.
-            if (Time.time - _lastTrailSampleAt >= TrailSampleInterval)
+            // Save the trail at a fixed spacing: enough points to reproduce the path, few enough to
+            // keep the profile small, and no runs of identical points while the tool is parked.
+            if (_trail.Count == 0 || Vector3.Distance(_trail[_trail.Count - 1], worldPos) >= TrailSampleDistance)
             {
-                _lastTrailSampleAt = Time.time;
                 if (_trail.Count < MaxTrailPoints) _trail.Add(worldPos);
             }
         }

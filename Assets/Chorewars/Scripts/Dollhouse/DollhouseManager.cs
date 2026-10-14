@@ -9,6 +9,9 @@ namespace Chorewars.Dollhouse
 {
     public class DollhouseManager : MonoBehaviour
     {
+        /// <summary>Shader property used for the per-room tint (Unlit/Color and Standard both use it).</summary>
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+
         [Header("Scale & Layout")]
         [SerializeField] private float scale = 0.05f;
         [SerializeField] private Vector3 dollhouseOrigin = new(0f, 0.1f, 0.5f);
@@ -67,6 +70,10 @@ namespace Chorewars.Dollhouse
             public List<Renderer> renderers = new();
             public float coveragePercent;
             public bool isClean;
+
+            // One property block per room, reused for every renderer in it. A room is tinted as a
+            // unit, so sharing the block is correct and avoids per-frame allocation.
+            public readonly MaterialPropertyBlock Block = new();
         }
 
         public void RegisterRoom(string roomId, Renderer[] roomRenderers)
@@ -140,16 +147,35 @@ namespace Chorewars.Dollhouse
 
         private void SetRoomCleanVisual(DollhouseRoom room, float t)
         {
+            Material material = null;
+
+            if (cleanMat != null && dirtyMat != null)
+            {
+                material = t >= 1f ? cleanMat :
+                           t <= 0f ? dirtyMat :
+                           transitioningMat != null ? transitioningMat : (t > 0.5f ? cleanMat : dirtyMat);
+            }
+
+            // Tint via a shared material plus a property block, not r.material. The r.material getter
+            // clones the material per renderer, which would give every room its own material instance
+            // and break batching. sharedMaterial keeps one material; the block carries the per-room
+            // alpha that the transition animates.
+            var block = room.Block;
+            block.Clear();
+
+            if (material != null)
+            {
+                var c = material.color;
+                c.a = Mathf.Lerp(0.6f, 1f, t);
+                block.SetColor(ColorId, c);
+            }
+
             foreach (var r in room.renderers)
             {
                 if (r == null) continue;
-                if (cleanMat != null && dirtyMat != null)
-                    r.material = t >= 1f ? cleanMat :
-                                 t <= 0f ? dirtyMat :
-                                 transitioningMat ?? (t > 0.5f ? cleanMat : dirtyMat);
-                var c = r.material.color;
-                c.a = Mathf.Lerp(0.6f, 1f, t);
-                r.material.color = c;
+
+                if (material != null) r.sharedMaterial = material;
+                r.SetPropertyBlock(block);
             }
         }
 

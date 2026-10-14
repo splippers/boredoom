@@ -61,6 +61,13 @@ namespace Chorewars.Runtime
         private float _summaryRevealAt;
         private float _summaryHideAt = -1f;
 
+        // Last values written to the chore panel. The panel is driven every frame, but the labels
+        // only need rebuilding when the whole number they show actually changes — otherwise the
+        // string interpolation allocates garbage every single frame on device.
+        private int _lastCoveragePercent = int.MinValue;
+        private int _lastTimerSecond = int.MinValue;
+        private string _lastGrade;
+
         /// <summary>Row layout for the per-room breakdown: built once, shown/hidden per session.</summary>
         private sealed class RoomBar
         {
@@ -109,7 +116,14 @@ namespace Chorewars.Runtime
             // The ring and the readout are smoothed/punched in AnimatePunches so this stays cheap
             // and can be called every frame.
             _ringTarget = Mathf.Clamp01(percent / 100f);
-            Assign(_coverageRingText, $"{percent:0}%");
+
+            // Rebuild the label only when the whole number actually changes. Assigning the
+            // interpolated string every frame would allocate continuously on device.
+            int rounded = Mathf.Clamp(Mathf.RoundToInt(percent), 0, 100);
+            if (rounded == _lastCoveragePercent) return;
+
+            _lastCoveragePercent = rounded;
+            Assign(_coverageRingText, $"{rounded}%");
         }
 
         /// <summary>Live score. The ticker counts up toward it rather than snapping.</summary>
@@ -120,11 +134,19 @@ namespace Chorewars.Runtime
 
         public void SetTimer(float secondsRemaining)
         {
-            Assign(_timerText, $"Time left {Mathf.Max(0f, secondsRemaining):0}s");
+            // Only rewrite the label when the displayed second changes.
+            int seconds = Mathf.Max(0, Mathf.CeilToInt(secondsRemaining));
+            if (seconds == _lastTimerSecond) return;
+
+            _lastTimerSecond = seconds;
+            Assign(_timerText, $"Time left {seconds}s");
         }
 
         public void SetGrade(string grade)
         {
+            if (grade == _lastGrade) return;
+
+            _lastGrade = grade;
             Assign(_gradeText, $"Grade {grade}");
         }
 

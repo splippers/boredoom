@@ -26,6 +26,7 @@ namespace Chorewars.Runtime
         private Transform _miniatureRoot;
         private float _scale = 0.05f;
         private float _nextPushAt;
+        private Material _wallMaterial;
 
         /// <summary>Rooms emitted by the scan so far.</summary>
         public int RoomCount => _rooms.Count;
@@ -143,7 +144,10 @@ namespace Chorewars.Runtime
             floor.transform.localScale = new Vector3(width, Mathf.Max(0.001f, wallHeight * 0.15f), depth);
             StripCollider(floor);
 
-            var wallMaterial = PlaceholderMaterials.CreateTransparent(new Color(1f, 1f, 1f), 0.35f);
+            // One shared wall material for the whole miniature (created lazily) so the walls batch
+            // instead of every room carrying its own material instance.
+            _wallMaterial ??= PlaceholderMaterials.CreateTransparent(new Color(1f, 1f, 1f), 0.35f);
+            var wallMaterial = _wallMaterial;
             float thickness = Mathf.Max(0.001f, wallHeight * 0.12f);
             float halfW = width * 0.5f;
             float halfD = depth * 0.5f;

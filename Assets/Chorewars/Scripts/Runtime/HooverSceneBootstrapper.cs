@@ -216,9 +216,19 @@ namespace Chorewars.Runtime
             var celebration = dollhouseGo.AddComponent<RoomCleanCelebration>();
             celebration.Configure(dollhouse, camera);
 
+            // 7c) Player profile singleton: lifetime stats, achievements and personal bests. Nothing
+            // in the project instantiates it, so without this the end-of-session compare has no data.
+            if (PlayerProfile.Instance == null)
+            {
+                var profileGo = new GameObject("PlayerProfile");
+                profileGo.transform.SetParent(root, false);
+                profileGo.AddComponent<PlayerProfile>();
+            }
+
             // 8) Flow: scan (button + progress + done), dollhouse presented, then chore begins.
             mode.ConfigureRuntime(hud, floorVisualizer, toolDriver, timeLimitSeconds);
             mode.celebration = celebration;
+            mode.dollhouse = dollhouse;
 
             var flowGo = new GameObject("ScanFlow");
             flowGo.transform.SetParent(root, false);

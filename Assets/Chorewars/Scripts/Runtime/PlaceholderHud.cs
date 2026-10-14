@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Chorewars.Core;
@@ -54,7 +55,26 @@ namespace Chorewars.Runtime
 
         private GameObject _summaryRoot;
         private Text _summaryText;
+        private Text _summaryTitleText;
+        private Text _summaryPbText;
+        private float _summaryPbPunch;
+        private float _summaryRevealAt;
         private float _summaryHideAt = -1f;
+
+        /// <summary>Row layout for the per-room breakdown: built once, shown/hidden per session.</summary>
+        private sealed class RoomBar
+        {
+            public GameObject Root;
+            public Text Label;
+            public Text Percent;
+            public RectTransform Fill;
+            public float BarWidth;
+            public float Target;
+        }
+
+        private const int MaxSummaryRooms = 6;
+        private readonly List<RoomBar> _roomBars = new();
+
         private bool _placed;
 
         public void Build(Camera camera)
@@ -66,7 +86,7 @@ namespace Chorewars.Runtime
             _canvas = canvasGo.GetComponent<Canvas>();
             _canvas.renderMode = RenderMode.WorldSpace;
             _canvas.worldCamera = camera;
-            canvasGo.GetComponent<RectTransform>().sizeDelta = new Vector2(640f, 320f);
+            canvasGo.GetComponent<RectTransform>().sizeDelta = new Vector2(640f, 480f);
             canvasGo.transform.localScale = Vector3.one * 0.0013f;
 
             // The launch panel already knows how to make a world-space canvas raycastable
@@ -186,21 +206,115 @@ namespace Chorewars.Runtime
 
         public void ShowSummary(ChoreResult result)
         {
+            ShowSummary(result, null, -1, false);
+        }
+
+        /// <summary>
+        /// Rich end-of-session summary: grade reveal, score, a personal-best compare and an animated
+        /// per-room breakdown.
+        /// </summary>
+        /// <param name="roomCoverage">Per-room final coverage (id → 0–100); null hides the bars.</param>
+        /// <param name="previousBest">Score to beat, or -1 to hide the compare line entirely.</param>
+        /// <param name="isNewBest">True when this run beat <paramref name="previousBest"/>.</param>
+        public void ShowSummary(
+            ChoreResult result,
+            IReadOnlyDictionary<string, float> roomCoverage,
+            int previousBest,
+            bool isNewBest)
+        {
             if (_summaryRoot == null) return;
 
             var grade = result != null && !string.IsNullOrEmpty(result.grade) ? result.grade : "-";
             var percent = result != null && result.session != null ? result.session.coveragePercent : 0f;
             var points = result != null ? result.totalPoints : 0;
 
+            Assign(_summaryTitleText, "CHORE COMPLETE");
             Assign(_summaryGradeText, grade);
-            Assign(_summaryText, $"CHORE COMPLETE\nClean {percent:0}%    Score {points}");
+            Assign(_summaryText, $"Clean {percent:0}%      Score {points}{FormatDuration(result)}");
 
-            // Kick off the slam + the screen-space punch.
+            if (_summaryPbText != null)
+            {
+                if (previousBest < 0)
+                {
+                    _summaryPbText.text = string.Empty;
+                }
+                else if (previousBest == 0)
+                {
+                    _summaryPbText.text = "First run \u2014 set the bar!";
+                    _summaryPbText.color = new Color(0.75f, 0.82f, 0.9f);
+                }
+                else if (isNewBest)
+                {
+                    _summaryPbText.text = $"NEW BEST!  beat {previousBest}   +{points - previousBest}";
+                    _summaryPbText.color = new Color(1f, 0.85f, 0.32f);
+                }
+                else
+                {
+                    int delta = points - previousBest;
+
+                    _summaryPbText.text = delta switch
+                    {
+                        > 0 => $"Best {previousBest}   +{delta}",
+                        0 => $"Best {previousBest}   matched",
+                        _ => $"Best {previousBest}   {delta}"
+                    };
+                    _summaryPbText.color = new Color(0.75f, 0.82f, 0.9f);
+                }
+            }
+
+            PopulateRoomBars(roomCoverage);
+
+            // Kick off the slam, the screen-space punch and the staggered bar reveal.
             _gradeSlam = 1f;
             _summaryPunch = 1f;
+            _summaryPbPunch = isNewBest ? 1f : 0f;
+            _summaryRevealAt = Time.unscaledTime;
 
             _summaryRoot.SetActive(true);
-            _summaryHideAt = Time.unscaledTime + 12f;
+            _summaryHideAt = Time.unscaledTime + 16f;
+        }
+
+        /// <summary>Fills in the per-room rows, hiding any that are unused this session.</summary>
+        private void PopulateRoomBars(IReadOnlyDictionary<string, float> roomCoverage)
+        {
+            int index = 0;
+
+            if (roomCoverage != null && roomCoverage.Count > 0)
+            {
+                // Sort so the rows read in a stable order rather than dictionary order.
+                var ids = new List<string>(roomCoverage.Keys);
+                ids.Sort();
+
+                foreach (var id in ids)
+                {
+                    if (index >= _roomBars.Count) break;
+
+                    var bar = _roomBars[index];
+                    bar.Root.SetActive(true);
+                    bar.Target = Mathf.Clamp(roomCoverage[id], 0f, 100f);
+
+                    Assign(bar.Label, id);
+                    Assign(bar.Percent, $"{bar.Target:0}%");
+
+                    // Start empty; AnimateSummaryBars grows it so the rows fill in sequence.
+                    bar.Fill.sizeDelta = new Vector2(0f, bar.Fill.sizeDelta.y);
+                    index++;
+                }
+            }
+
+            for (; index < _roomBars.Count; index++) _roomBars[index].Root.SetActive(false);
+        }
+
+        private static string FormatDuration(ChoreResult result)
+        {
+            if (result?.session == null || !result.session.endTimeUtc.HasValue) return string.Empty;
+
+            var seconds = (float)(result.session.endTimeUtc.Value - result.session.startTimeUtc).TotalSeconds;
+            if (seconds <= 0f) return string.Empty;
+
+            int m = (int)seconds / 60;
+            int s = (int)seconds % 60;
+            return m > 0 ? $"      {m}m {s:D2}s" : $"      {s}s";
         }
 
         public void HideSummary()
@@ -365,28 +479,98 @@ namespace Chorewars.Runtime
 
         private void BuildSummary(Transform parent)
         {
-            _summaryRoot = MakeImage(parent, "Summary", new Color(0f, 0f, 0f, 0.72f));
+            _summaryRoot = MakeImage(parent, "Summary", new Color(0f, 0f, 0f, 0.78f));
             Stretch(_summaryRoot.GetComponent<RectTransform>());
 
+            _summaryTitleText = MakeText(_summaryRoot.transform, "Title", 34, TextAnchor.MiddleCenter, new Color(0.72f, 0.94f, 0.78f));
+            CentreElement(_summaryTitleText.rectTransform, new Vector2(0f, 198f), new Vector2(620f, 44f));
+
             // Big grade letter on its own element so it can slam in independently of the details.
-            _summaryGradeText = MakeText(_summaryRoot.transform, "GradeLetter", 150, TextAnchor.MiddleCenter, new Color(1f, 0.88f, 0.4f));
-            var gradeRect = _summaryGradeText.rectTransform;
-            gradeRect.anchorMin = new Vector2(0.5f, 0.5f);
-            gradeRect.anchorMax = new Vector2(0.5f, 0.5f);
-            gradeRect.pivot = new Vector2(0.5f, 0.5f);
-            gradeRect.anchoredPosition = new Vector2(0f, 46f);
-            gradeRect.sizeDelta = new Vector2(400f, 180f);
+            _summaryGradeText = MakeText(_summaryRoot.transform, "GradeLetter", 130, TextAnchor.MiddleCenter, new Color(1f, 0.88f, 0.4f));
+            CentreElement(_summaryGradeText.rectTransform, new Vector2(0f, 104f), new Vector2(400f, 150f));
             _summaryGradeText.text = "-";
 
-            _summaryText = MakeText(_summaryRoot.transform, "SummaryText", 36, TextAnchor.MiddleCenter, Color.white);
-            var detailRect = _summaryText.rectTransform;
-            detailRect.anchorMin = new Vector2(0.5f, 0.5f);
-            detailRect.anchorMax = new Vector2(0.5f, 0.5f);
-            detailRect.pivot = new Vector2(0.5f, 0.5f);
-            detailRect.anchoredPosition = new Vector2(0f, -74f);
-            detailRect.sizeDelta = new Vector2(580f, 170f);
+            _summaryText = MakeText(_summaryRoot.transform, "SummaryText", 30, TextAnchor.MiddleCenter, Color.white);
+            CentreElement(_summaryText.rectTransform, new Vector2(0f, 14f), new Vector2(620f, 40f));
+
+            _summaryPbText = MakeText(_summaryRoot.transform, "PbText", 28, TextAnchor.MiddleCenter, new Color(0.75f, 0.82f, 0.9f));
+            CentreElement(_summaryPbText.rectTransform, new Vector2(0f, -30f), new Vector2(620f, 36f));
+
+            BuildSummaryRoomBars(_summaryRoot.transform);
 
             _summaryRoot.SetActive(false);
+        }
+
+        /// <summary>Builds the per-room rows once; ShowSummary only shows/hides and retargets them.</summary>
+        private void BuildSummaryRoomBars(Transform parent)
+        {
+            const float rowHeight = 34f;
+            const float labelWidth = 150f;
+            const float barLeft = 160f;
+            const float barWidth = 320f;
+            const float percentLeft = 496f;
+
+            for (int i = 0; i < MaxSummaryRooms; i++)
+            {
+                var rowGo = new GameObject($"RoomBar{i}", typeof(RectTransform));
+                rowGo.transform.SetParent(parent, false);
+
+                var rowRect = rowGo.GetComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.5f, 0.5f);
+                rowRect.anchorMax = new Vector2(0.5f, 0.5f);
+                rowRect.pivot = new Vector2(0f, 0.5f);
+                // Anchored at the canvas centre; rows start at x -310 so they span the panel width.
+                rowRect.anchoredPosition = new Vector2(-310f, -72f - i * rowHeight);
+                rowRect.sizeDelta = new Vector2(620f, rowHeight - 6f);
+
+                var label = MakeText(rowGo.transform, "Label", 24, TextAnchor.MiddleLeft, new Color(0.86f, 0.9f, 0.96f));
+                SetRect(label.rectTransform, Vector2.zero, new Vector2(labelWidth, rowHeight - 6f));
+
+                var back = MakeImage(rowGo.transform, "Back", new Color(1f, 1f, 1f, 0.14f));
+                var backRect = back.GetComponent<RectTransform>();
+                backRect.anchorMin = new Vector2(0f, 0.5f);
+                backRect.anchorMax = new Vector2(0f, 0.5f);
+                backRect.pivot = new Vector2(0f, 0.5f);
+                backRect.anchoredPosition = new Vector2(barLeft, 0f);
+                backRect.sizeDelta = new Vector2(barWidth, 18f);
+
+                var fill = MakeImage(rowGo.transform, "Fill", new Color(0.36f, 0.9f, 0.6f));
+                var fillRect = fill.GetComponent<RectTransform>();
+                fillRect.anchorMin = new Vector2(0f, 0.5f);
+                fillRect.anchorMax = new Vector2(0f, 0.5f);
+                fillRect.pivot = new Vector2(0f, 0.5f);
+                fillRect.anchoredPosition = new Vector2(barLeft, 0f);
+                fillRect.sizeDelta = new Vector2(0f, 18f);
+
+                var percent = MakeText(rowGo.transform, "Percent", 24, TextAnchor.MiddleRight, new Color(0.86f, 0.9f, 0.96f));
+                var percentRect = percent.rectTransform;
+                percentRect.anchorMin = new Vector2(0f, 0.5f);
+                percentRect.anchorMax = new Vector2(0f, 0.5f);
+                percentRect.pivot = new Vector2(0f, 0.5f);
+                percentRect.anchoredPosition = new Vector2(percentLeft, 0f);
+                percentRect.sizeDelta = new Vector2(84f, rowHeight - 6f);
+
+                _roomBars.Add(new RoomBar
+                {
+                    Root = rowGo,
+                    Label = label,
+                    Percent = percent,
+                    Fill = fillRect,
+                    BarWidth = barWidth
+                });
+
+                rowGo.SetActive(false);
+            }
+        }
+
+        /// <summary>Centre-anchored element placement, shared by the summary text block.</summary>
+        private static void CentreElement(RectTransform rect, Vector2 anchoredPosition, Vector2 size)
+        {
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = size;
         }
 
         private void LateUpdate()
@@ -409,6 +593,7 @@ namespace Chorewars.Runtime
             transform.rotation = Quaternion.LookRotation(transform.position - cameraTransform.position, Vector3.up);
 
             AnimatePunches();
+            AnimateSummaryBars();
 
             if (_summaryHideAt > 0f && Time.unscaledTime >= _summaryHideAt) HideSummary();
         }
@@ -481,6 +666,43 @@ namespace Chorewars.Runtime
 
                 if (_summaryRoot != null)
                     _summaryRoot.transform.localScale = Vector3.one * Mathf.Lerp(1f, 1.06f, _summaryPunch);
+            }
+
+            // The personal-best line gets its own flourish when the run actually beat the record.
+            if (_summaryPbPunch > 0f)
+            {
+                _summaryPbPunch = Mathf.Max(0f, _summaryPbPunch - dt * 2.2f);
+
+                if (_summaryPbText != null)
+                    _summaryPbText.rectTransform.localScale = Vector3.one * (1f + _summaryPbPunch * 0.22f);
+            }
+        }
+
+        /// <summary>
+        /// Grows the per-room bars one after another after the summary appears. Cheap: only touches
+        /// the rects of rows that are actually visible, and does nothing at all once settled.
+        /// </summary>
+        private void AnimateSummaryBars()
+        {
+            if (_summaryRoot == null || !_summaryRoot.activeSelf) return;
+
+            float since = Time.unscaledTime - _summaryRevealAt;
+
+            for (int i = 0; i < _roomBars.Count; i++)
+            {
+                var bar = _roomBars[i];
+                if (bar.Root == null || !bar.Root.activeSelf || bar.Fill == null) continue;
+
+                // Staggered start so the rows read in sequence rather than all at once.
+                float start = 0.25f + i * 0.13f;
+                float local = Mathf.Clamp01((since - start) / 0.45f);
+
+                // Ease-out so the fill decelerates into its final value.
+                float eased = 1f - (1f - local) * (1f - local);
+                float shown = Mathf.Lerp(0f, bar.Target, eased);
+
+                var size = bar.Fill.sizeDelta;
+                bar.Fill.sizeDelta = new Vector2(bar.BarWidth * (shown / 100f), size.y);
             }
         }
 

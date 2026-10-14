@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Chorewars.Core;
+using Chorewars.Dollhouse;
 using Chorewars.Modes;
 
 namespace Chorewars.Runtime
@@ -13,9 +15,18 @@ namespace Chorewars.Runtime
     {
         private const float EndAtCoveragePercent = 100f;
 
+        /// <summary>Profile key for this mode's personal best / ghost run.</summary>
+        private const string ModeId = "hoover";
+
+        /// <summary>Ghost trail sampling interval, in seconds, and a hard cap on saved points.</summary>
+        private const float TrailSampleInterval = 0.1f;
+        private const int MaxTrailPoints = 3000;
+
         private PlaceholderHud _hud;
         private CoverageFloorVisualizer _floorVisualizer;
         private PlaceholderToolDriver _toolDriver;
+        private readonly List<Vector3> _trail = new();
+        private float _lastTrailSampleAt;
         private float _startTime;
         private float _timeLimitSeconds = 90f;
         private bool _begun;
@@ -23,6 +34,9 @@ namespace Chorewars.Runtime
 
         /// <summary>Supplies the per-room bonus. Optional; without it the bonus is zero.</summary>
         public RoomCleanCelebration celebration;
+
+        /// <summary>Source of the per-room breakdown for the summary. Optional.</summary>
+        public DollhouseManager dollhouse;
 
         public void ConfigureRuntime(
             PlaceholderHud hud,
@@ -45,6 +59,13 @@ namespace Chorewars.Runtime
         protected override void OnTrackedPositionSampled(Vector3 worldPos)
         {
             _floorVisualizer?.Mark(worldPos);
+
+            // Ghost trail: sampled sparsely and capped, so the saved path stays small.
+            if (Time.time - _lastTrailSampleAt >= TrailSampleInterval)
+            {
+                _lastTrailSampleAt = Time.time;
+                if (_trail.Count < MaxTrailPoints) _trail.Add(worldPos);
+            }
         }
 
         protected override void Update()
@@ -76,10 +97,37 @@ namespace Chorewars.Runtime
 
         protected override void OnModeEnded(ChoreResult result)
         {
-            Debug.Log(
-                $"[BoreDOOM] Hoover ended — grade {result?.grade}, points {result?.totalPoints}, " +
-                $"coverage {result?.session?.coveragePercent:0}%");
-            _hud?.ShowSummary(result);
+            int previousBest = -1;
+            bool isNewBest = false;
+
+            var profile = PlayerProfile.Instance;
+
+            if (result != null)
+            {
+                float duration = Mathf.Max(0f, Time.time - _startTime);
+
+                if (profile != null)
+                {
+                    // Read the old best before recording, so the compare is against the previous run.
+                    previousBest = profile.GetBestPoints(ModeId);
+                    isNewBest = previousBest > 0 && result.totalPoints > previousBest;
+
+                    profile.RecordSession(result);
+
+                    if (_trail.Count >= 2) profile.SaveGhost(ModeId, _trail, duration, result.totalPoints);
+                }
+
+                Debug.Log(
+                    $"[BoreDOOM] Hoover ended — grade {result.grade}, points {result.totalPoints}, " +
+                    $"coverage {result.session?.coveragePercent:0}%, duration {duration:0}s, " +
+                    $"bestBefore {previousBest}, newBest {isNewBest}, trail {_trail.Count}");
+            }
+
+            _hud?.ShowSummary(
+                result,
+                dollhouse != null ? dollhouse.RoomFinalCoverage : null,
+                previousBest,
+                isNewBest);
         }
 
         /// <summary>
@@ -91,13 +139,14 @@ namespace Chorewars.Runtime
         }
 
         /// <summary>
-        /// Same thresholds as <see cref="ScoringEngine"/>, applied to the live score, so the grade on
-        /// the HUD during play matches the grade on the summary screen.
+        /// Same thresholds as the base controller's re-grade, applied to the live score, so the grade
+        /// on the HUD during play matches the grade on the summary screen.
         /// </summary>
         private static string EstimateGrade(int points)
         {
             return points switch
             {
+                >= 1100 => "S+",
                 >= 900 => "S",
                 >= 750 => "A",
                 >= 600 => "B",

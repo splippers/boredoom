@@ -29,6 +29,11 @@ namespace Chorewars.Dollhouse
         [SerializeField] private CraicKenReporter reporter;
 
         private readonly Dictionary<string, DollhouseRoom> _rooms = new();
+
+        // Latest coverage per room, kept for the end-of-session summary so it can show a per-room
+        // breakdown after play has finished.
+        private readonly Dictionary<string, float> _roomFinalCoverage = new();
+
         private int _totalRooms;
         private int _cleanRooms;
         private bool _allCleanAnnounced;
@@ -39,6 +44,9 @@ namespace Chorewars.Dollhouse
         /// off a genuine event instead of polling coverage.
         /// </summary>
         public event Action<string, Transform> RoomCleaned;
+
+        /// <summary>Final coverage percentage for each registered room (id → 0–100).</summary>
+        public IReadOnlyDictionary<string, float> RoomFinalCoverage => _roomFinalCoverage;
 
         public Vector3 WorldToDollhouse(Vector3 worldPos) => dollhouseOrigin + worldPos * scale;
 
@@ -72,6 +80,7 @@ namespace Chorewars.Dollhouse
                 isClean = false
             };
             _rooms[roomId] = room;
+            _roomFinalCoverage[roomId] = 0f;
             _totalRooms++;
 
             SetRoomCleanVisual(room, 0f);
@@ -82,6 +91,7 @@ namespace Chorewars.Dollhouse
             if (!_rooms.TryGetValue(roomId, out var room)) return;
 
             room.coveragePercent = coveragePct;
+            _roomFinalCoverage[roomId] = coveragePct;
 
             if (coveragePct >= 95f && !room.isClean)
             {

@@ -88,6 +88,16 @@ namespace Chorewars.Core
             return true;
         }
 
+        /// <summary>
+        /// Best recorded score for a chore mode, or 0 when the mode has never been played. Used by
+        /// the end-of-session summary to compare the run just finished against a personal best.
+        /// </summary>
+        public int GetBestPoints(string choreMode)
+        {
+            var ghost = _data.bestGhosts.Find(g => g.choreMode == choreMode);
+            return ghost?.pointsScored ?? 0;
+        }
+
         public void SaveGhost(string choreMode, List<Vector3> path, float duration, int points)
         {
             var existing = _data.bestGhosts.Find(g => g.choreMode == choreMode);

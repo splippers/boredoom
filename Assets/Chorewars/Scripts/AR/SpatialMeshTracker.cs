@@ -36,6 +36,30 @@ namespace Chorewars.AR
 
         public int MeshCount => _meshesById.Count;
 
+        /// <summary>
+        /// Appends every captured vertex, in world space, to <paramref name="into"/>. Lets a consumer
+        /// work with the scanned geometry without holding on to the meshes or the transforms.
+        /// </summary>
+        public void CollectWorldVertices(List<Vector3> into)
+        {
+            if (into == null) return;
+
+            foreach (var kv in _meshesById)
+            {
+                var mesh = kv.Value;
+                if (mesh == null) continue;
+
+                var localToWorld = Matrix4x4.identity;
+                if (_meshGosById.TryGetValue(kv.Key, out var go) && go != null)
+                    localToWorld = go.transform.localToWorldMatrix;
+
+                var vertices = mesh.vertices;
+                for (int i = 0; i < vertices.Length; i++)
+                    into.Add(localToWorld.MultiplyPoint3x4(vertices[i]));
+            }
+        }
+
+
         public void ClearAllMeshes()
         {
             foreach (var kv in _meshGosById)

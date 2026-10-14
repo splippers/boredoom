@@ -42,7 +42,7 @@ namespace Chorewars.Runtime
         {
             base.OnModeBegun();
 
-            _network = FindFirstObjectByType<LocalNetworkAPI>();
+            _network = FindAnyObjectByType<LocalNetworkAPI>();
             _hasOpponent = _network != null;
 
             if (_hasOpponent)

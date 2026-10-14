@@ -46,7 +46,8 @@ namespace Chorewars.Runtime
         /// <summary>Current consecutive-new-cell streak (0 when the streak has lapsed).</summary>
         public int Combo => _combo;
 
-        /// <summary>When false the controller ignores cells entirely (core loop keeps running).</summary>
+        /// <summary>When false the controller ignores cells entirely (core loop keeps running).
+        /// Also gated by the global <see cref="JuiceSettings.Enabled"/> switch.</summary>
         public bool Enabled { get; set; } = true;
 
         public void Configure(CoverageMap map, PlaceholderHud hud, float floorY)
@@ -75,7 +76,7 @@ namespace Chorewars.Runtime
 
         private void OnCellFirstVisited(Vector3 worldCentre)
         {
-            if (!Enabled) return;
+            if (!Enabled || !JuiceSettings.Enabled) return;
 
             var now = Time.unscaledTime;
             _combo = now - _lastCellAt <= ComboWindowSeconds ? _combo + 1 : 1;

@@ -189,7 +189,7 @@ namespace Chorewars.Runtime
             hudGo.transform.SetParent(root, false);
             var hud = hudGo.AddComponent<PlaceholderHud>();
             hud.Build(camera);
-            hud.SetSource($"{source} | {bounds.size.x:0.0}x{bounds.size.z:0.0} m | WASD or arrows to hoover, E to end");
+            hud.SetSource($"{source} | {bounds.size.x:0.0}x{bounds.size.z:0.0} m | WASD hoover, E end, J juice");
 
             // 6b) Juice: puffs + streak + procedural ticks for every newly cleaned cell.
             var juice = roomGo.AddComponent<ChoreJuice>();

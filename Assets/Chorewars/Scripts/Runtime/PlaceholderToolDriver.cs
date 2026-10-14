@@ -20,6 +20,12 @@ namespace Chorewars.Runtime
         /// <summary>Set when the player asks to end the session (E or Enter).</summary>
         public bool EndRequested { get; private set; }
 
+        /// <summary>
+        /// Set for one frame when the player asks to flip the juice layer (J). Read and cleared by
+        /// the mode, which owns applying it, so the keys stay in one place.
+        /// </summary>
+        public bool JuiceToggleRequested { get; private set; }
+
         public void Configure(Transform followTarget, Bounds bounds, float speed = 1.6f, float height = 0.9f)
         {
             _followTarget = followTarget;
@@ -28,12 +34,27 @@ namespace Chorewars.Runtime
             _height = height;
         }
 
+        /// <summary>Reads and clears the one-frame juice toggle request.</summary>
+        public bool ConsumeJuiceToggle()
+        {
+            if (!JuiceToggleRequested) return false;
+
+            JuiceToggleRequested = false;
+            return true;
+        }
+
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
             var keyboard = Keyboard.current;
-            if (keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame))
-                EndRequested = true;
+            if (keyboard != null)
+            {
+                if (keyboard.eKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame)
+                    EndRequested = true;
+
+                if (keyboard.jKey.wasPressedThisFrame)
+                    JuiceToggleRequested = true;
+            }
 #endif
 
             if (_followTarget != null)

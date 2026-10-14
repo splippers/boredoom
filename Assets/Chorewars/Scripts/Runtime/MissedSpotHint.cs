@@ -44,7 +44,8 @@ namespace Chorewars.Runtime
         /// <summary>Coverage (%) before hints are allowed to appear, so it never nags at the start.</summary>
         public float MinimumCoveragePercent { get; set; } = 15f;
 
-        /// <summary>Master switch, shared with the rest of the juice layer.</summary>
+        /// <summary>Master switch for this hint, combined with the global
+        /// <see cref="JuiceSettings.Enabled"/> switch.</summary>
         public bool Enabled { get; set; } = true;
 
         /// <summary>How many times a cluster has been surfaced (diagnostics).</summary>
@@ -132,7 +133,7 @@ namespace Chorewars.Runtime
                 }
             }
 
-            wants = _hasTarget && Enabled;
+            wants = _hasTarget && Enabled && JuiceSettings.Enabled;
 
             _visible = Mathf.MoveTowards(_visible, wants ? 1f : 0f, Time.unscaledDeltaTime * FadeSpeed);
 

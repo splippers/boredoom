@@ -76,11 +76,14 @@ namespace Chorewars.Runtime
         /// <summary>Total confetti pieces spawned so far (diagnostics).</summary>
         public int TotalConfetti { get; private set; }
 
-        /// <summary>Master switch; when false rooms clean silently.</summary>
+        /// <summary>Master switch; when false rooms clean silently — but still score.</summary>
         public bool Enabled { get; set; } = true;
 
         /// <summary>Brief slow motion on a room clean. Off disables any time-scale meddling.</summary>
         public bool SlowMotionEnabled { get; set; } = true;
+
+        /// <summary>Effective gate: this component's own switch AND the global juice switch.</summary>
+        private bool JuiceEnabled => Enabled && JuiceSettings.Enabled;
 
         public void Configure(DollhouseManager dollhouse, Camera camera)
         {
@@ -102,8 +105,15 @@ namespace Chorewars.Runtime
             BuildPopups();
         }
 
+        private void OnEnable()
+        {
+            JuiceSettings.Changed += OnJuiceChanged;
+        }
+
         private void OnDisable()
         {
+            JuiceSettings.Changed -= OnJuiceChanged;
+
             if (_dollhouse != null) _dollhouse.RoomCleaned -= OnRoomCleaned;
 
             // Never leave the game slowed down if we are torn down mid-celebration.
@@ -114,11 +124,31 @@ namespace Chorewars.Runtime
             }
         }
 
+        /// <summary>If the juice is switched off mid-celebration, settle anything still running.</summary>
+        private void OnJuiceChanged(bool enabled)
+        {
+            if (enabled) return;
+
+            if (_slowMoRunning)
+            {
+                Time.timeScale = 1f;
+                _slowMoRunning = false;
+            }
+        }
+
         private void OnRoomCleaned(string roomId, Transform roomRoot)
         {
-            if (!Enabled) return;
-
+            // Scoring first, and unconditionally. The bonus the mode adds to the final score is
+            // RoomsCleaned * PointsPerRoom, so it has to be counted even when the celebration is
+            // switched off — otherwise turning the juice off would quietly change the score, which
+            // is exactly what the toggle is not allowed to do.
             RoomsCleaned++;
+
+            if (!JuiceEnabled)
+            {
+                Debug.Log($"[RoomCleanCelebration] {roomId} clean — +{PointsPerRoom} (x{RoomsCleaned}, juice off)");
+                return;
+            }
 
             var bounds = MeasureRoom(roomRoot);
             var centre = bounds.center;

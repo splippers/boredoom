@@ -55,7 +55,11 @@ namespace Chorewars.Core
         }
 
         private SaveData _data = new();
-        private static readonly string SavePath =
+
+        // Deliberately a property, not a static field: Application.persistentDataPath may not be read
+        // from a field initializer / type initializer (Unity throws if it is first touched while a
+        // MonoBehaviour is being constructed). Deferring it to call time keeps the type loadable.
+        private static string SavePath =>
             Path.Combine(Application.persistentDataPath, "player_profile.json");
 
         // Public read-only accessors

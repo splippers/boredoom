@@ -15,8 +15,9 @@ namespace Chorewars.Runtime
     {
         private const float EndAtCoveragePercent = 100f;
 
-        /// <summary>Profile key for this mode's personal best / ghost run.</summary>
-        private const string ModeId = "hoover";
+        /// <summary>Profile key for this mode's personal best / ghost run. Named apart from the
+        /// base class's serialized <c>ModeId</c> (which is empty for a runtime-added component).</summary>
+        private const string ProfileModeId = "hoover";
 
         /// <summary>Ghost trail sampling interval, in seconds, and a hard cap on saved points.</summary>
         private const float TrailSampleInterval = 0.1f;
@@ -74,6 +75,14 @@ namespace Chorewars.Runtime
 
             base.Update();
 
+            // One key flips the whole juice layer. Scoring never reads it, so this can be toggled
+            // mid-run without changing the result.
+            if (_toolDriver != null && _toolDriver.ConsumeJuiceToggle())
+            {
+                bool on = JuiceSettings.Toggle();
+                Debug.Log($"[BoreDOOM] Juice {(on ? "ON" : "OFF")}");
+            }
+
             float elapsed = Time.time - _startTime;
             float coverage = coverageMap != null ? coverageMap.ComputeCoveragePercent() : 0f;
 
@@ -89,10 +98,21 @@ namespace Chorewars.Runtime
 
             bool manualEnd = _toolDriver != null && _toolDriver.EndRequested;
             if (coverage >= EndAtCoveragePercent || elapsed >= _timeLimitSeconds || manualEnd)
-            {
-                _ended = true;
                 End();
-            }
+        }
+
+        /// <summary>
+        /// Ending is idempotent. <see cref="BaseCoverageModeController.End"/> scores the session and
+        /// records it against the profile, so calling it twice would double-count the score, the
+        /// lifetime points and the ghost. End can be reached from more than one place (the timer, the
+        /// end key, or a UI button), so it guards itself rather than trusting its callers.
+        /// </summary>
+        public override void End()
+        {
+            if (_ended) return;
+
+            _ended = true;
+            base.End();
         }
 
         protected override void OnModeEnded(ChoreResult result)
@@ -109,12 +129,12 @@ namespace Chorewars.Runtime
                 if (profile != null)
                 {
                     // Read the old best before recording, so the compare is against the previous run.
-                    previousBest = profile.GetBestPoints(ModeId);
+                    previousBest = profile.GetBestPoints(ProfileModeId);
                     isNewBest = previousBest > 0 && result.totalPoints > previousBest;
 
                     profile.RecordSession(result);
 
-                    if (_trail.Count >= 2) profile.SaveGhost(ModeId, _trail, duration, result.totalPoints);
+                    if (_trail.Count >= 2) profile.SaveGhost(ProfileModeId, _trail, duration, result.totalPoints);
                 }
 
                 Debug.Log(

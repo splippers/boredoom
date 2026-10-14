@@ -485,7 +485,7 @@ namespace Chorewars.Runtime
         }
 
         /// <summary>An annulus sprite for the coverage ring (transparent inside and out).</summary>
-        private static Sprite RingSprite()
+        internal static Sprite RingSprite()
         {
             if (_ringSprite != null) return _ringSprite;
 

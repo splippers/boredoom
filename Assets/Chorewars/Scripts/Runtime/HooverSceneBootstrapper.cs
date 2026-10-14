@@ -195,6 +195,10 @@ namespace Chorewars.Runtime
             var juice = roomGo.AddComponent<ChoreJuice>();
             juice.Configure(coverageMap, hud, bounds.min.y);
 
+            // 6c) Missed-spot hint: faint pulsing marker over the biggest uncleaned patch.
+            var hint = roomGo.AddComponent<MissedSpotHint>();
+            hint.Configure(coverageMap, camera, bounds.min.y);
+
             // 7) Dollhouse + scan -> dollhouse pipeline (placeholder clean/dirty materials).
             var dollhouseGo = new GameObject("Dollhouse");
             dollhouseGo.transform.SetParent(root, false);

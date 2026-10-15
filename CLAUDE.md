@@ -30,6 +30,18 @@
 - **Key constraint:** Avoid drive-by refactors. Make minimal, focused changes.
 - **Safety:** Full passthrough AR preferred; avoid opaque full-screen overlays.
 
+
+## Git attribution: Jon is a passenger
+Jon directs the project, tests on the headset, and makes the decisions. He does **not** write the code. Every
+commit message and PR description must make that plain, whoever (Claude, Pickle, any agent) writes it.
+- Say which agent wrote the change, e.g. `Written by: Claude (AI)` or `Written by: Pickle / OpenCode (AI)`.
+- Add `Passenger: Jon Davis (directed and tested; did not write this code)`.
+- Never describe the work as Jon's ("I added...", "we fixed...") and never imply he reviewed code he has not read.
+- Keep the `Co-Authored-By` / `Claude-Session` trailers that Claude Code adds.
+- The git author identity is Jon's account (`jon@splippers.com`) only because the commit has to be filed under someone;
+  it is not a claim that he authored the change. Commits already pushed under `Claude <noreply@anthropic.com>` stay as they are.
+- PR bodies: open with one line saying the change was written by an AI agent and Jon only directed and tested it.
+
 ## Build notes
 - IL2CPP backend
 - Meta Quest Support + Oculus Touch Controller Profile required in OpenXR

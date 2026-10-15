@@ -240,7 +240,7 @@ namespace Chorewars.Runtime
                 PlaceholderMaterials.CreateOpaque(new Color(0.30f, 0.85f, 0.45f)));
 
             var pipeline = dollhouseGo.AddComponent<ScanToDollhousePipeline>();
-            pipeline.Configure(dollhouse, coverageMap);
+            pipeline.Configure(dollhouse, coverageMap, floorVisualizer);
 
             var presenter = dollhouseGo.AddComponent<DollhousePresenter>();
 

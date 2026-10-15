@@ -23,6 +23,13 @@ namespace Chorewars.Dollhouse
         [SerializeField] private Material transitioningMat;
         [SerializeField] private float transitionDuration = 0.8f;
 
+        /// <summary>
+        /// Renderers that draw something of their own instead of the clean/dirty tint, such as a room
+        /// floor showing the live floor texture. They are still part of the room and still get its
+        /// bounds; the tint pass just leaves their material alone.
+        /// </summary>
+        private readonly HashSet<Renderer> _untinted = new HashSet<Renderer>();
+
         [Header("Share Card")]
         [SerializeField] private Camera captureCamera;
         [SerializeField] private int captureWidth = 1080;
@@ -161,6 +168,16 @@ namespace Chorewars.Dollhouse
             return candidate;
         }
 
+        /// <summary>
+        /// Tells the manager to leave a renderer's material alone. Call it for anything you have given
+        /// its own material — otherwise the next coverage update replaces it and the thing you set up
+        /// silently disappears.
+        /// </summary>
+        public void MarkUntinted(Renderer renderer)
+        {
+            if (renderer != null) _untinted.Add(renderer);
+        }
+
         private void SetRoomCleanVisual(DollhouseRoom room, float t)
         {
             Material material = null;
@@ -189,6 +206,7 @@ namespace Chorewars.Dollhouse
             foreach (var r in room.tintRenderers)
             {
                 if (r == null) continue;
+                if (_untinted.Contains(r)) continue;
 
                 if (material != null) r.sharedMaterial = material;
                 r.SetPropertyBlock(block);

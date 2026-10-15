@@ -69,8 +69,36 @@ current pose.
 * Live in `HooverMode`, before a chore: 1 capture, 1680 texels photographed, 0 revealed —
   nothing displays until a chore is running. After Standard Coverage and the scan: 25
   revealed texels, all 25 photographed, all 25 showing the photograph, 0 wrong.
+* The dollhouse: 4 of 4 room floors sample the live floor's own `Texture2D` object, each
+  landing on the room's own rectangle of the play area, worst UV error 1.3e-8. The
+  counter-check that the texture really holds the photographs: 25 of 25 revealed texels
+  match their photograph byte for byte, worst channel-sum delta 0.
 * The switch, as above.
 
-Not yet: the dollhouse miniature still shows the tint material. Sharing this texture
-needs a per-room UV scale and offset so a miniature room samples its own sub-rectangle
-of the play area rather than the whole thing.
+## The dollhouse samples the same texture
+
+The miniature is a second view of one floor, not a second copy of it. Each room floor gets
+its own `Unlit/Texture` material pointed at the *same* `Texture2D` the live floor uses, and
+a per-room scale and offset so that room samples its own sub-rectangle.
+
+Whose footprint that is matters and is easy to get wrong: the miniature is drawn at the
+dollhouse, tens of centimetres from where the room really is, so the mapping is derived from
+the room's **world** rectangle and not from where the miniature floor sits. Deriving it from
+the miniature's own position still produces a plausible-looking floor — just the wrong part
+of it — which is how it went unnoticed until the numbers were checked. The corner of the room
+each corner of the floor stands for is decided once, while the floor is still where
+`WorldToDollhouse` puts it, and the scale and offset are then solved from the room's world
+rectangle against the play area.
+
+The one thing taken from the mesh is which way its UVs run. Unity's cube top face is
+mirrored, and solving for that beats assuming it: the fit is checked against every corner and
+refuses rather than silently transposing the floor. A room that cannot be mapped keeps its
+tint.
+
+Because that mapping lives in mesh UV space, the miniature can be moved and scaled for
+presentation without the floor drifting onto the wrong part of the texture.
+
+The floor is the room's only cleanliness signal, and it now draws photographs instead of the
+clean/dirty tint, so a miniature room no longer tints as it is cleaned. The photograph
+appearing *is* the progress. `DollhouseManager.MarkUntinted` refuses a renderer so the tint
+pass leaves it alone; the floor is still part of the room and still contributes its bounds.

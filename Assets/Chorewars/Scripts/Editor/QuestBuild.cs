@@ -55,6 +55,7 @@ namespace Chorewars.Build
             sb.Append(" appId=").Append(PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android));
             sb.Append(" sceneExists=").Append(File.Exists(ScenePath));
             sb.Append(" internetPermission=").Append(PlayerSettings.Android.forceInternetPermission);
+            sb.Append(" toolchain=[").Append(QuestToolchain.Summary()).Append(']');
 
             return sb.ToString();
         }
@@ -63,11 +64,7 @@ namespace Chorewars.Build
         public static string BuildApk(string outputPath = DefaultOutputPath)
         {
             if (!IsAndroidBuildSupported)
-            {
-                return "cannot build: the Android Build Support module is not installed for this editor. " +
-                       "Install it from Unity Hub (Editor install > Add modules > Android Build Support, with SDK & NDK), then try again. " +
-                       "State: " + Validate();
-            }
+                return "cannot build: " + QuestToolchain.Advice() + " State: " + Validate();
 
             if (!File.Exists(ScenePath))
                 return "cannot build: scene not found at " + ScenePath;

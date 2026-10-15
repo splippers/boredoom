@@ -192,6 +192,80 @@ namespace Chorewars.Build
         {
             Debug.Log("[BoreDOOM] Android toolchain —\n" + Detailed());
         }
+        /// <summary>
+        /// Checks the resolver can recognise a real NDK, by building one. The trap this guards is
+        /// specific: ndk-build is a file at the NDK root, not a directory, so it must be passed as
+        /// the required *file*. Getting that wrong makes every valid NDK read as incomplete, and it
+        /// fails quietly -- the resolver still returns a plausible-looking "missing ndk-build".
+        /// </summary>
+        [MenuItem("BoreDOOM/Quest/Run toolchain self-test")]
+        public static void SelfTestFromMenu()
+        {
+            string report;
+            var passed = SelfTest(out report);
+
+            if (passed) Debug.Log("[BoreDOOM] QuestToolchain self-test PASSED" + Environment.NewLine + report);
+            else Debug.LogError("[BoreDOOM] QuestToolchain self-test FAILED" + Environment.NewLine + report);
+        }
+
+        /// <summary>Points the resolver at a synthetic NDK root and checks what it makes of it.</summary>
+        public static bool SelfTest(out string report)
+        {
+            var sb = new StringBuilder();
+            var passed = true;
+
+            var root = Path.Combine(Path.GetTempPath(), "boredoom-questtoolchain-selftest");
+            var nothing = Path.Combine(root, "not-a-real-ndk");
+
+            try
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+                Directory.CreateDirectory(root);
+                File.WriteAllText(Path.Combine(root, "ndk-build"), "#!/bin/sh");
+                File.WriteAllText(Path.Combine(root, "source.properties"), "Pkg.Revision = 99.9.99999");
+
+                var present = Describe(ToolKind.Ndk, root, null, nothing, new string[0], null, "ndk-build");
+
+                passed &= Expect(sb, "a root with an ndk-build file is usable", present.Usable, present.Detail);
+                passed &= Expect(sb, "and its revision is read", Contains(present.Detail, "99.9.99999"), present.Detail);
+                passed &= Expect(sb, "and it is credited to the editor's settings",
+                    present.Source == ToolSource.EditorSettings, present.Source.ToString());
+
+                File.Delete(Path.Combine(root, "ndk-build"));
+
+                var without = Describe(ToolKind.Ndk, root, null, nothing, new string[0], null, "ndk-build");
+
+                passed &= Expect(sb, "a root without ndk-build is not usable", !without.Usable, without.Detail);
+                passed &= Expect(sb, "and says ndk-build is what is missing",
+                    Contains(without.Detail, "missing ndk-build"), without.Detail);
+            }
+            catch (Exception exception)
+            {
+                passed = false;
+                sb.Append("  FAULT  ").Append(exception.GetType().Name).Append(": ").AppendLine(exception.Message);
+            }
+            finally
+            {
+                try { if (Directory.Exists(root)) Directory.Delete(root, true); }
+                catch (Exception) { }
+            }
+
+            report = sb.ToString();
+            return passed;
+        }
+
+        static bool Expect(StringBuilder sb, string what, bool passed, string detail)
+        {
+            sb.Append(passed ? "  PASS  " : "  FAIL  ").Append(what);
+
+            if (!passed && !string.IsNullOrEmpty(detail)) sb.Append("  (").Append(detail).Append(')');
+
+            return passed;
+        }
+
+        static bool Contains(string haystack, string needle)
+            => !string.IsNullOrEmpty(haystack) && haystack.Contains(needle);
+
         static string SessionNote()
         {
             var sb = new StringBuilder();

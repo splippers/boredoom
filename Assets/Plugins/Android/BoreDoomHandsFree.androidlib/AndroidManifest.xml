@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Hands-free: the player is holding a hoover. Declaring hand tracking (required=false) is what lets
+         the Quest launch without demanding controllers; required=true would make it hands-only. -->
+    <uses-feature android:name="oculus.software.handtracking" android:required="false" />
+    <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
+    <!-- ORAC voice input. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+</manifest>

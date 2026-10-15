@@ -155,9 +155,31 @@ namespace Chorewars.Runtime
             Debug.Log($"[QuestScanSource] Scan complete — {rooms.Count} room(s) from {_vertices.Count} captured vertices.");
         }
 
+        /// <summary>
+        /// The room to play in when the scan could see nothing. The guardian boundary is tried first,
+        /// because it is a real measurement of the space the player has — the runtime already knows it
+        /// and it costs nothing. Only when there is no boundary either does the room become a box of
+        /// an assumed size, which is a guess in the same breath as any other.
+        /// </summary>
         private RoomScan BuildFallbackRoom()
         {
+            if (PlaySpaceBoundary.TryGetRect() is Rect boundary)
+            {
+                Debug.Log($"[QuestScanSource] No meshing available — using the play-space boundary instead " +
+                          $"({boundary.width:0.0}x{boundary.height:0.0} m at {boundary.x:0.0},{boundary.y:0.0}).");
+
+                return new RoomScan
+                {
+                    roomId = "Play Space",
+                    boundsXZ = boundary,
+                    floorY = 0f,
+                    wallHeight = 2.4f
+                };
+            }
+
             float half = Mathf.Max(0.5f, fallbackRoomSizeMeters) * 0.5f;
+            Debug.Log($"[QuestScanSource] No meshing and no play-space boundary — falling back to an " +
+                      $"assumed {half * 2f:0.0}x{half * 2f:0.0} m room.");
 
             return new RoomScan
             {

@@ -67,6 +67,8 @@ namespace Chorewars.UI
             StartCoroutine(CoBuildWorldUi());
         }
 
+        private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement();
+
         private IEnumerator CoBuildWorldUi()
         {
             // XR setups often have no Camera.main for the first few frames; wait so World Space UI isn't "black".
@@ -86,10 +88,9 @@ namespace Chorewars.UI
             if (_canvas != null)
                 _canvas.worldCamera = cam;
 
-            var t = _canvasRoot.transform;
-            var pos = cam.transform.position + cam.transform.forward * 1.65f + cam.transform.up * 0.08f;
-            t.position = pos;
-            t.rotation = Quaternion.LookRotation(cam.transform.position - t.position, Vector3.up);
+            // This panel is all buttons, so it holds still for head gaze to reach them; a copy that
+            // followed the head would keep the same button under the middle of the view forever.
+            _gazePlacement.Hold(_canvasRoot.transform, cam.transform, 1.65f, 0.08f);
         }
 
         private Camera GetPlayCamera()
@@ -163,6 +164,14 @@ namespace Chorewars.UI
             scaler.scaleFactor = 1f;
 
             TryInstallVrRaycaster(_canvasRoot);
+
+            // Controllers are not a given here - the player's hands are usually full - so the
+            // same GraphicRaycaster is driven by head gaze instead of by a controller laser.
+            // Harmless when a Meta raycaster was installed instead: it simply finds no
+            // GraphicRaycaster and idles.
+            var gaze = _canvasRoot.AddComponent<Chorewars.HandsFree.HeadGazePointer>();
+            gaze.Eye = GetPlayCamera();
+            gaze.Raycaster = _canvasRoot.GetComponent<GraphicRaycaster>();
 
             var panel = CreateUiChild(_canvasRoot.transform, "Panel", stretch: true);
 

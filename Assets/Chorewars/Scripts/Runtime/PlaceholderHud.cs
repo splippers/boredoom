@@ -100,6 +100,7 @@ namespace Chorewars.Runtime
         private readonly List<RoomBar> _roomBars = new();
 
         private bool _placed;
+        private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement();
 
         public void Build(Camera camera)
         {
@@ -118,6 +119,12 @@ namespace Chorewars.Runtime
             // EventSystem with the right input module. Reuse it instead of duplicating that logic.
             ModeQuickSwitchPanel.EnsureVrEventSystem();
             ModeQuickSwitchPanel.TryInstallVrRaycaster(canvasGo);
+
+            // Same reason as the launch panel: without controllers there is nothing to click
+            // with, so head gaze drives this canvas' raycaster too.
+            var gaze = canvasGo.AddComponent<Chorewars.HandsFree.HeadGazePointer>();
+            gaze.Eye = camera;
+            gaze.Raycaster = canvasGo.GetComponent<GraphicRaycaster>();
 
             BuildChorePanel(canvasGo.transform);
             BuildScanPanel(canvasGo.transform);
@@ -215,6 +222,7 @@ namespace Chorewars.Runtime
 
         public void ShowScanPanel(string title, string status)
         {
+            Debug.Log("[hud] scan panel shown: " + title);
             if (_scanPanel != null) _scanPanel.SetActive(true);
             Assign(_scanTitleText, title);
             Assign(_scanStatusText, status);
@@ -222,6 +230,7 @@ namespace Chorewars.Runtime
 
         public void HideScanPanel()
         {
+            Debug.Log("[hud] scan panel hidden");
             if (_scanPanel != null) _scanPanel.SetActive(false);
         }
 
@@ -551,10 +560,12 @@ namespace Chorewars.Runtime
             var titleText = _modePanel != null ? _modePanel.transform.Find("Title")?.GetComponent<Text>() : null;
             Assign(titleText, title);
             _modePanel.SetActive(true);
+            Debug.Log("[hud] mode panel shown");
         }
 
         public void HideModePanel()
         {
+            Debug.Log("[hud] mode panel hidden");
             if (_modePanel != null) _modePanel.SetActive(false);
         }
 
@@ -736,16 +747,31 @@ namespace Chorewars.Runtime
             if (_canvas != null && _canvas.worldCamera != _camera) _canvas.worldCamera = _camera;
 
             var cameraTransform = _camera.transform;
-            var target = cameraTransform.position
-                         + cameraTransform.forward * 1.15f
-                         + cameraTransform.up * -0.26f;
 
-            transform.position = _placed
-                ? Vector3.Lerp(transform.position, target, Time.unscaledDeltaTime * 10f)
-                : target;
-            _placed = true;
+            // A panel with something to select must hold still, or head gaze can never reach it: the
+            // middle of the view would land on the same spot of a panel that follows the head.
+            bool selectable = (_scanPanel != null && _scanPanel.activeSelf)
+                              || (_modePanel != null && _modePanel.activeSelf);
+            if (selectable)
+            {
+                _gazePlacement.Hold(transform, cameraTransform, 1.15f, -0.26f);
+                _placed = true;
+            }
+            else
+            {
+                _gazePlacement.Release();
 
-            transform.rotation = Quaternion.LookRotation(transform.position - cameraTransform.position, Vector3.up);
+                var target = cameraTransform.position
+                             + cameraTransform.forward * 1.15f
+                             + cameraTransform.up * -0.26f;
+
+                transform.position = _placed
+                    ? Vector3.Lerp(transform.position, target, Time.unscaledDeltaTime * 10f)
+                    : target;
+                _placed = true;
+
+                transform.rotation = Quaternion.LookRotation(transform.position - cameraTransform.position, Vector3.up);
+            }
 
             AnimatePunches();
             AnimateSummaryBars();

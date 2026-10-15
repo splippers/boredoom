@@ -1,19 +1,20 @@
 using System;
-using System.IO;
 using UnityEngine;
 
 namespace Chorewars.Diagnostics
 {
     /// <summary>
-    /// JSON line logging to <see cref="Application.persistentDataPath"/>/MQ3.log (rotation ~10 MB).
-    /// CopilotRef appendix — usable on Quest when adb logcat is thin.
+    /// JSON line logging to <see cref="Application.persistentDataPath"/>/MQ3.log, for events worth
+    /// reading by hand. Written through <see cref="TelemetryWriter"/>, so a burst cannot stall the
+    /// frame that produced it.
     /// </summary>
+    /// <remarks>
+    /// This is the human log: a handful of lines an hour, each a sentence. It is not the place for
+    /// per-frame numbers — those want <see cref="TelemetrySamples"/>, which keeps its values in
+    /// memory and reports statistics rather than a line each.
+    /// </remarks>
     public static class TelemetryLogger
     {
-        const string FileName = "MQ3.log";
-        const string RotatedName = "MQ3.1.log";
-        const long MaxBytes = 10L * 1024 * 1024;
-
         [Serializable]
         struct Line
         {
@@ -22,8 +23,6 @@ namespace Chorewars.Diagnostics
             public string sev;
             public string msg;
         }
-
-        static readonly object Gate = new object();
 
         public static void Info(string subsystem, string message) => Write(subsystem, "INFO", message, null);
 
@@ -45,35 +44,9 @@ namespace Chorewars.Diagnostics
                 msg = message
             };
 
-            var json = JsonUtility.ToJson(line);
-            lock (Gate)
-            {
-                try
-                {
-                    var dir = Application.persistentDataPath;
-                    var path = Path.Combine(dir, FileName);
-                    MaybeRotate(path);
-                    File.AppendAllText(path, json + "\n");
-                }
-                catch
-                {
-                    // Never throw from logging
-                }
-            }
-        }
-
-        static void MaybeRotate(string path)
-        {
-            if (!File.Exists(path))
-                return;
-            var info = new FileInfo(path);
-            if (info.Length < MaxBytes)
-                return;
-
-            var rotated = Path.Combine(Application.persistentDataPath, RotatedName);
-            if (File.Exists(rotated))
-                File.Delete(rotated);
-            File.Move(path, rotated);
+            // Handed to the shared writer rather than written here, so a burst of events cannot stall
+            // the frame that produced them.
+            TelemetryWriter.Line(JsonUtility.ToJson(line));
         }
     }
 }

@@ -89,7 +89,7 @@ namespace Chorewars.Modes
         {
             _items.Clear();
 
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if CHOREWARS_META_XR
             // Query OVRSceneObjects for furniture/clutter anchors
             var anchors = FindObjectsOfType<OVRSceneObject>();
             foreach (var anchor in anchors)

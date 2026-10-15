@@ -30,25 +30,25 @@ namespace Chorewars.Dollhouse
             if (dollhouseManager == null)
                 dollhouseManager = GetComponent<DollhouseManager>();
 
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if CHOREWARS_META_XR
             var rooms = FindObjectsOfType<OVRSceneRoom>();
             foreach (var room in rooms)
                 RegisterRoom(room);
-#else
+#elif UNITY_EDITOR
             // Editor: create a placeholder 5x5m room for testing
             CreateEditorPlaceholder();
 #endif
         }
 
         private void RegisterRoom(
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if CHOREWARS_META_XR
             OVRSceneRoom room
 #else
             object room
 #endif
         )
         {
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if CHOREWARS_META_XR
             string roomId = room.Space.Uuid.ToString();
 
             // Floor plane — use the room's floor anchor

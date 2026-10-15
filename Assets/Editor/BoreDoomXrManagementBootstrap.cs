@@ -64,8 +64,8 @@ public static class BoreDoomXrManagementBootstrap
                     var mgr = perBuild.ManagerSettingsForBuildTarget(group);
                     if (mgr == null)
                         continue;
-                    while (mgr.loaders.Count > 0)
-                        mgr.TryRemoveLoader(mgr.loaders[0]);
+                    while (mgr.activeLoaders.Count > 0)
+                        mgr.TryRemoveLoader(mgr.activeLoaders[0]);
                     mgr.TryAddLoader(loader);
                     mgr.automaticLoading = true;
                     mgr.automaticRunning = true;
@@ -81,12 +81,12 @@ public static class BoreDoomXrManagementBootstrap
                 EditorUtility.SetDirty(perBuild);
                 AssetDatabase.SaveAssets();
 
-                EditorBuildSettings.RemoveConfigObject(XRGeneralSettings.k_SettingsKey);
-                EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, perBuild, true);
+                EditorBuildSettings.RemoveConfigObject(XRGeneralSettings.settingsKey);
+                EditorBuildSettings.AddConfigObject(XRGeneralSettings.settingsKey, perBuild, true);
             }
             else
             {
-                EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, perBuild, true);
+                EditorBuildSettings.AddConfigObject(XRGeneralSettings.settingsKey, perBuild, true);
             }
 
             TryEnsureOpenXrPackageSettings();
@@ -107,7 +107,7 @@ public static class BoreDoomXrManagementBootstrap
     static bool IsAndroidLoaderConfigured(XRGeneralSettingsPerBuildTarget perBuild)
     {
         var mgr = perBuild.ManagerSettingsForBuildTarget(BuildTargetGroup.Android);
-        return mgr != null && mgr.loaders != null && mgr.loaders.Count > 0;
+        return mgr != null && mgr.activeLoaders != null && mgr.activeLoaders.Count > 0;
     }
 
     static void EnableQuestOpenXrAndroidFeatures()
@@ -159,6 +159,26 @@ public static class BoreDoomXrManagementBootstrap
         if (touch != null && !touch.enabled)
         {
             touch.enabled = true;
+            changed = true;
+        }
+
+        // AR Foundation session + meshing (from com.unity.xr.meta-openxr). Session is a dependency of
+        // every other AR feature; Meshing is what turns the runtime's XR_FB_triangle_mesh into the
+        // XRMeshSubsystem that SpatialMeshTracker reads, and enabling it is also what makes the
+        // package add com.oculus.permission.USE_SCENE / USE_ANCHOR_API to the Android manifest
+        // (see ModifyAndroidManifest.cs in that package). Both are absent when the package is not
+        // installed, hence the null checks.
+        var arSession = android.GetFeature<UnityEngine.XR.OpenXR.Features.Meta.ARSessionFeature>();
+        if (arSession != null && !arSession.enabled)
+        {
+            arSession.enabled = true;
+            changed = true;
+        }
+
+        var arMesh = android.GetFeature<UnityEngine.XR.OpenXR.Features.Meta.ARMeshFeature>();
+        if (arMesh != null && !arMesh.enabled)
+        {
+            arMesh.enabled = true;
             changed = true;
         }
 

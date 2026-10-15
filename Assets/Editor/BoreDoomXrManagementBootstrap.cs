@@ -182,6 +182,15 @@ public static class BoreDoomXrManagementBootstrap
             changed = true;
         }
 
+        // The game is AR, not VR: the player must stay aware of their room. Passthrough is the Camera feature
+        // plus an ARCameraManager on the camera (added at runtime in QuestXrRigBootstrap).
+        var arCamera = android.GetFeature<UnityEngine.XR.OpenXR.Features.Meta.ARCameraFeature>();
+        if (arCamera != null && !arCamera.enabled)
+        {
+            arCamera.enabled = true;
+            changed = true;
+        }
+
         if (changed)
         {
             EditorUtility.SetDirty(android);

@@ -67,6 +67,7 @@ namespace Chorewars.UI
             StartCoroutine(CoBuildWorldUi());
         }
 
+        private float _nextRuntimeCheckAt;
         private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement();
 
         private IEnumerator CoBuildWorldUi()
@@ -87,6 +88,19 @@ namespace Chorewars.UI
 
             if (_canvas != null)
                 _canvas.worldCamera = cam;
+
+            // The runtime flow draws its own menus. This launcher is 1.7 m wide and sits just behind them, so
+            // with both up the nearer layer takes every gaze and the other is unreachable, and the text of
+            // the two overlaps. The runtime HUD supersedes it; scenes without one still get the launcher.
+            if (_canvasRoot.activeSelf && Time.unscaledTime >= _nextRuntimeCheckAt)
+            {
+                _nextRuntimeCheckAt = Time.unscaledTime + 0.5f;
+                if (FindFirstObjectByType<Chorewars.Runtime.PlaceholderHud>(FindObjectsInactive.Include) != null)
+                {
+                    _canvasRoot.SetActive(false);
+                    Debug.Log("[launcher] runtime HUD present - launcher panel hidden");
+                }
+            }
 
             // This panel is all buttons, so it holds still for head gaze to reach them; a copy that
             // followed the head would keep the same button under the middle of the view forever.

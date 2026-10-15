@@ -100,6 +100,7 @@ namespace Chorewars.Runtime
         private readonly List<RoomBar> _roomBars = new();
 
         private bool _placed;
+        private int _lastSelectableKind;
         private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement();
 
         public void Build(Camera camera)
@@ -521,7 +522,7 @@ namespace Chorewars.Runtime
             buttonRect.anchorMax = new Vector2(0.5f, 0f);
             buttonRect.pivot = new Vector2(0.5f, 0f);
             buttonRect.anchoredPosition = new Vector2(0f, 20f);
-            buttonRect.sizeDelta = new Vector2(340f, 66f);
+            buttonRect.sizeDelta = new Vector2(400f, 100f);
 
             var button = buttonGo.AddComponent<Button>();
             button.targetGraphic = buttonGo.GetComponent<Image>();
@@ -584,11 +585,14 @@ namespace Chorewars.Runtime
             var panelGo = new GameObject("ModePanel", typeof(RectTransform));
             panelGo.transform.SetParent(_canvas.transform, false);
 
+            // Seven two-line rows do not fit the 640x480 canvas the other panels use, so this one is taller than
+            // the canvas and centred on it. A canvas does not clip, and bigger rows are easier to hit by gaze.
             var rect = panelGo.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(640f, 760f);
+            rect.anchoredPosition = new Vector2(0f, 90f);
 
             var paper = MakeImage(panelGo.transform, "Paper", new Color(0.05f, 0.06f, 0.09f, 0.80f));
             Stretch(paper.GetComponent<RectTransform>());
@@ -601,8 +605,8 @@ namespace Chorewars.Runtime
             SetRect(_modeStatusText.rectTransform, new Vector2(28f, -74f), new Vector2(600f, 40f));
 
             var modes = RuntimeModeCatalog.Modes;
-            float y = -120f;
-            const float rowHeight = 54f;
+            float y = -124f;
+            const float rowHeight = 84f;
             const float rowGap = 8f;
 
             for (int i = 0; i < modes.Count; i++)
@@ -612,7 +616,7 @@ namespace Chorewars.Runtime
 
                 var rowGo = MakeImage(panelGo.transform, $"Mode_{info.Id}", ModeIdle);
                 var rowRect = rowGo.GetComponent<RectTransform>();
-                SetRect(rowRect, new Vector2(28f, top), new Vector2(584f, rowHeight));
+                SetRect(rowRect, new Vector2(20f, top), new Vector2(600f, rowHeight));
 
                 var button = rowGo.AddComponent<Button>();
                 button.targetGraphic = rowGo.GetComponent<Image>();
@@ -624,16 +628,14 @@ namespace Chorewars.Runtime
                     ModeSelected?.Invoke(id);
                 });
 
-                var name = MakeText(rowGo.transform, "Name", 30, TextAnchor.MiddleLeft, Color.white);
-                SetRect(name.rectTransform, new Vector2(16f, 0f), new Vector2(250f, rowHeight));
+                // Name above, description below: side by side the description ran left over the name.
+                var name = MakeText(rowGo.transform, "Name", 32, TextAnchor.MiddleLeft, Color.white);
+                SetRect(name.rectTransform, new Vector2(16f, -6f), new Vector2(568f, 40f));
                 name.text = info.DisplayName;
 
-                var blurb = MakeText(rowGo.transform, "Blurb", 21, TextAnchor.MiddleRight, new Color(0.78f, 0.84f, 0.95f));
-                var blurbRect = blurb.rectTransform;
-                blurbRect.anchorMin = new Vector2(0f, 0f);
-                blurbRect.anchorMax = new Vector2(1f, 1f);
-                blurbRect.offsetMin = new Vector2(270f, 0f);
-                blurbRect.offsetMax = new Vector2(-16f, 0f);
+                var blurb = MakeText(rowGo.transform, "Blurb", 19, TextAnchor.MiddleLeft, new Color(0.78f, 0.84f, 0.95f));
+                SetRect(blurb.rectTransform, new Vector2(16f, -46f), new Vector2(568f, 30f));
+                blurb.horizontalOverflow = HorizontalWrapMode.Wrap;
                 blurb.text = info.Blurb;
 
                 _modeRows.Add(new ModeRow { Id = info.Id, Background = rowGo.GetComponent<Image>(), Name = name });
@@ -752,9 +754,20 @@ namespace Chorewars.Runtime
             // middle of the view would land on the same spot of a panel that follows the head.
             bool selectable = (_scanPanel != null && _scanPanel.activeSelf)
                               || (_modePanel != null && _modePanel.activeSelf);
+            // A different panel has a different size, so it is placed afresh rather than inheriting the last one's pose.
+            int selectableKind = (_modePanel != null && _modePanel.activeSelf) ? 2 : (_scanPanel != null && _scanPanel.activeSelf) ? 1 : 0;
+            if (selectableKind != _lastSelectableKind)
+            {
+                _lastSelectableKind = selectableKind;
+                _gazePlacement.Release();
+            }
+
             if (selectable)
             {
-                _gazePlacement.Hold(transform, cameraTransform, 1.15f, -0.26f);
+                // How far the panel's lower edge hangs below the point it is positioned by: the tall chore menu
+                // is centred 0.117 m above the canvas centre and 0.99 m tall; the scan panel is the canvas.
+                float belowCentre = (_modePanel != null && _modePanel.activeSelf) ? 0.38f : 0.32f;
+                _gazePlacement.Hold(transform, cameraTransform, 1.15f, -0.12f, 0f, belowCentre);
                 _placed = true;
             }
             else

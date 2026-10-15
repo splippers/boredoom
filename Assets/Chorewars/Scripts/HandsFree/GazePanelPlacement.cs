@@ -23,6 +23,9 @@ namespace Chorewars.HandsFree
         /// <summary>Walking away from a held panel is the other way to lose it: past this, it is brought back.</summary>
         public float RecenterDistance = 2.4f;
 
+        /// <summary>Gap kept between a panel's lower edge and the floor, in metres.</summary>
+        public float FloorClearance = 0.12f;
+
         bool _held;
         Vector3 _position;
         Quaternion _rotation;
@@ -33,7 +36,10 @@ namespace Chorewars.HandsFree
             _held = false;
         }
 
-        public void Hold(Transform panel, Transform head, float distance, float heightOffset)
+        /// <param name="floorY">World height of the floor. The panel is lifted if its lower edge would dip below it.</param>
+        /// <param name="belowCentre">How far the panel's lower edge hangs below the point it is positioned by.</param>
+        public void Hold(Transform panel, Transform head, float distance, float heightOffset,
+                         float floorY = float.NegativeInfinity, float belowCentre = 0f)
         {
             if (panel == null || head == null) return;
 
@@ -54,6 +60,12 @@ namespace Chorewars.HandsFree
                 flat.Normalize();
 
                 _position = head.position + flat * distance + Vector3.up * heightOffset;
+
+                // A seated player's head is not far above the floor, and a tall panel centred on the view
+                // then reaches through it - the floor slices the bottom controls off. Keep the lower edge
+                // clear, even if that lifts the panel above eye level.
+                if (!float.IsNegativeInfinity(floorY))
+                    _position.y = Mathf.Max(_position.y, floorY + FloorClearance + belowCentre);
 
                 // A world-space canvas reads correctly when its +Z points away from the viewer.
                 var away = Vector3.ProjectOnPlane(_position - head.position, Vector3.up);

@@ -109,6 +109,21 @@ namespace Chorewars.Bootstrap
             cam.nearClipPlane = 0.01f;
             cam.farClipPlane = 500f;
 
+            // The game is AR: the player must always see their real surroundings. On the headset the camera
+            // is cleared to transparent and an ARCameraManager turns passthrough on (the Meta camera feature
+            // creates the passthrough composition layer). The ARSession starts the subsystems, camera and
+            // meshing alike. The editor has no passthrough, so it keeps the dark background.
+            if (!Application.isEditor)
+            {
+                cam.backgroundColor = new Color(0f, 0f, 0f, 0f);
+                camGo.AddComponent<UnityEngine.XR.ARFoundation.ARCameraManager>();
+
+                var sessionGo = new GameObject("AR Session");
+                sessionGo.AddComponent<UnityEngine.XR.ARFoundation.ARSession>();
+                UObject.DontDestroyOnLoad(sessionGo);
+                TelemetryLogger.Info("Bootstrap", "Passthrough: ARSession + ARCameraManager added, camera cleared transparent.");
+            }
+
 #if ENABLE_INPUT_SYSTEM
             var poseDriver = camGo.AddComponent<TrackedPoseDriver>();
             poseDriver.trackingType = TrackedPoseDriver.TrackingType.RotationAndPosition;
@@ -126,6 +141,11 @@ namespace Chorewars.Bootstrap
 
             xrOrigin.CameraFloorOffsetObject = floorOffset;
             xrOrigin.Camera = cam;
+
+            // The game puts its floor at y = 0 and everything else relative to it, so the tracking origin has to
+            // BE the floor. Left unspecified, the headset's height is not tied to the real floor and the placeholder
+            // floor can sit half a metre below the head, slicing through menus.
+            xrOrigin.RequestedTrackingOriginMode = XROrigin.TrackingOriginMode.Floor;
 
             UObject.DontDestroyOnLoad(xrOriginGo);
         }

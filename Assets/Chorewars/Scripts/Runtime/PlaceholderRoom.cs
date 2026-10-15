@@ -40,6 +40,10 @@ namespace Chorewars.Runtime
             if (FloorRenderer != null)
                 FloorRenderer.sharedMaterial = PlaceholderMaterials.CreateOpaque(new Color(0.06f, 0.07f, 0.09f));
 
+            // The walls are a guess at the room's shape. In passthrough the real walls are right there, and a
+            // cyan box that does not match them is worse than none.
+            if (!Application.isEditor) return;
+
             var wallMaterial = PlaceholderMaterials.CreateTransparent(new Color(0.25f, 0.75f, 1f), wallAlpha);
             float height = wallHeightMeters;
             float wallY = floorY + height * 0.5f;

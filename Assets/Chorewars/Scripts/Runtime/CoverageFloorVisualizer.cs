@@ -94,7 +94,12 @@ namespace Chorewars.Runtime
 
             if (floorRenderer == null) return;
 
-            var shader = Shader.Find("Unlit/Texture");
+            // On the headset the player sees their real floor through passthrough, so the overlay must be
+            // transparent wherever nothing has been cleaned. In the editor there is no passthrough and the
+            // opaque floor is the only floor there is.
+            Shader shader = null;
+            if (!Application.isEditor) shader = Shader.Find("Chorewars/ARFloorOverlay");
+            if (shader == null) shader = Shader.Find("Unlit/Texture");
             if (shader == null) shader = Shader.Find("Unlit/Color");
             var material = new Material(shader) { name = "CoverageFloorMat", mainTexture = _texture };
             floorRenderer.sharedMaterial = material;

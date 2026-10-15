@@ -92,18 +92,33 @@ namespace Chorewars.Runtime
             }
         }
 
-        private void OnStartRequested() => BeginScan();
+        private void OnStartRequested()
+        {
+            if (_phase == Phase.Ready) BeginScan();
+            else if (_phase == Phase.Scanning) FinishScan();
+        }
 
         private void BeginScan()
         {
             if (_phase != Phase.Ready) return;
             _phase = Phase.Scanning;
 
-            _hud.ShowScanPanel("SCANNING THE ROOM", "Move around slowly while we map surfaces…");
-            _hud.SetScanButtonLabel("SCANNING");
+            _hud.ShowScanPanel("SCANNING THE ROOM", "Move around slowly while we map surfaces. Press FINISH SCAN when the room is mapped.");
+            _hud.SetScanButtonLabel("FINISH SCAN");
             _hud.SetScanProgress(0f, "Locating rooms…");
 
             if (_pipeline != null) _pipeline.StartScan(_source);
+        }
+
+        /// <summary>
+        /// Ends the scan early, at the player's request. The source does the real work — it stops the
+        /// tracker, turns what was captured into rooms, and raises completion — and the flow moves on
+        /// on its next tick. Harmless if the scan already finished on its own.
+        /// </summary>
+        private void FinishScan()
+        {
+            if (_phase != Phase.Scanning) return;
+            _source?.Stop();
         }
 
         private void UpdateScanning()

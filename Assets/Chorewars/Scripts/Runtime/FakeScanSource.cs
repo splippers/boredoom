@@ -27,6 +27,8 @@ namespace Chorewars.Runtime
         public float Progress { get; private set; }
         public bool IsScanning { get; private set; }
 
+        private int _emitted;
+
         public Bounds? KnownBounds
         {
             get
@@ -52,28 +54,45 @@ namespace Chorewars.Runtime
         {
             if (!IsScanning) return;
 
-            IsScanning = false;
             StopAllCoroutines();
+            Finish();
         }
 
         private IEnumerator RunScan()
         {
-            int emitted = 0;
-
-            while (emitted < Plan.Count)
+            while (_emitted < Plan.Count)
             {
-                var room = Plan[emitted];
-                room.wallHeight = wallHeightMeters;
-                emitted++;
-                Progress = emitted / (float)Plan.Count;
-
-                RoomScanned?.Invoke(room);
+                EmitNext();
                 yield return new WaitForSeconds(emitIntervalSeconds);
             }
 
-            Progress = 1f;
+            Finish();
+        }
+
+        /// <summary>
+        /// Ends the scan, emitting anything still unemitted first. Stopping early is a legitimate
+        /// thing to ask of a source — the device scan offers a "finish" button — so a stop is a
+        /// completion, not a cancellation. Guarded so the scan completes exactly once.
+        /// </summary>
+        private void Finish()
+        {
+            if (!IsScanning) return;
+
+            while (_emitted < Plan.Count) EmitNext();
+
             IsScanning = false;
+            Progress = 1f;
             ScanCompleted?.Invoke();
+        }
+
+        private void EmitNext()
+        {
+            var room = Plan[_emitted];
+            _emitted++;
+            room.wallHeight = wallHeightMeters;
+            Progress = _emitted / (float)Plan.Count;
+
+            RoomScanned?.Invoke(room);
         }
     }
 }

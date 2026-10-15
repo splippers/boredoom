@@ -27,8 +27,19 @@ namespace Chorewars.Runtime
         [Tooltip("Side length of the single room emitted when no meshing is available.")]
         [SerializeField] private float fallbackRoomSizeMeters = 3f;
 
+        [Tooltip("How long the mesh must stop growing before an unattended scan is considered done.")]
+        [SerializeField] private float settleSeconds = 6f;
+
+        [Tooltip("Never finish from settling before this long, so a pause is not mistaken for the end.")]
+        [SerializeField] private float minimumScanSeconds = 10f;
+
+        [Tooltip("Hard limit: a scan that never settles still finishes here.")]
+        [SerializeField] private float maximumScanSeconds = 60f;
+
         private readonly List<Vector3> _vertices = new();
         private float _startedAt;
+        private int _lastMeshCount = -1;
+        private float _lastGrowthAt;
 
         public float Progress { get; private set; }
         public bool IsScanning { get; private set; }
@@ -77,12 +88,41 @@ namespace Chorewars.Runtime
         {
             if (!IsScanning) return;
 
+            float elapsed = Time.unscaledTime - _startedAt;
+            int meshCount = spatialMeshTracker != null ? spatialMeshTracker.MeshCount : 0;
+
+            if (meshCount != _lastMeshCount)
+            {
+                _lastMeshCount = meshCount;
+                _lastGrowthAt = Time.unscaledTime;
+            }
+
             // Pace the bar from time, or from mesh arrival if meshes are actually coming in. Never
             // reach the top until the scan is stopped, so "100%" always means "done".
-            float byTime = (Time.unscaledTime - _startedAt) / Mathf.Max(1f, assumedScanSeconds);
-            float byMesh = spatialMeshTracker != null ? spatialMeshTracker.MeshCount / 40f : 0f;
+            float byTime = elapsed / Mathf.Max(1f, assumedScanSeconds);
+            float byMesh = meshCount / 40f;
 
             Progress = Mathf.Clamp01(Mathf.Max(byTime, byMesh)) * 0.95f;
+
+            if (ShouldFinish(elapsed, meshCount)) Stop();
+        }
+
+        /// <summary>
+        /// Decides when an unattended scan is finished. The player can always finish by hand; this is
+        /// the safety net for when they walk away. A scan is done when the space has stopped growing:
+        /// either meshes are arriving and have now paused, or none ever arrived and there is nothing
+        /// left to wait for. A pause only counts after a minimum, so a quiet moment while someone is
+        /// still moving around is not mistaken for the end, and a hard limit stops the rest.
+        /// </summary>
+        private bool ShouldFinish(float elapsed, int meshCount)
+        {
+            if (elapsed >= maximumScanSeconds) return true;
+            if (elapsed < minimumScanSeconds) return false;
+
+            // Nothing is coming: the runtime exposes no meshing boundary to wait for.
+            if (meshCount == 0) return elapsed >= assumedScanSeconds;
+
+            return Time.unscaledTime - _lastGrowthAt >= settleSeconds;
         }
 
         private void ExtractAndEmitRooms()

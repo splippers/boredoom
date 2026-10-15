@@ -23,6 +23,11 @@ namespace Chorewars.Runtime
         [SerializeField] private float toolHeightMeters = 0.9f;
         [SerializeField] private float toolSpeedMetersPerSecond = 1.6f;
 
+        // Placeholder eye for the photo bake: about standing height, with a lens wide enough to see
+        // the floor around the tool. Both stand in for the headset and are expected to change with it.
+        [SerializeField] private float photoEyeHeightMeters = 1.55f;
+        [SerializeField] private float photoVerticalFieldOfViewDegrees = 65f;
+
         private static HooverSceneBootstrapper _instance;
 
         private RuntimeCoverageMode _mode;
@@ -37,6 +42,7 @@ namespace Chorewars.Runtime
         private PlaceholderHud _hud;
         private CoverageMap _coverageMap;
         private CoverageFloorVisualizer _floorVisualizer;
+        private PhotoBakeDriver _bakeDriver;
         private Transform _tool;
         private PathTracker _pathTracker;
         private PlaceholderToolDriver _toolDriver;
@@ -200,6 +206,14 @@ namespace Chorewars.Runtime
             var toolDriver = tool.AddComponent<PlaceholderToolDriver>();
             toolDriver.Configure(FindRightController(), bounds, toolSpeedMetersPerSecond, toolHeightMeters);
 
+            // 4b) Pseudo-photogrammetry: cleaned floor shows what the camera saw rather than a flat
+            //     tint. Presentation only, and safe to lose — with no frame source the bake does not
+            //     run and the floor behaves exactly as it did before this layer existed.
+            var bakeGo = new GameObject("PhotoBake");
+            bakeGo.transform.SetParent(root, false);
+            var bakeDriver = bakeGo.AddComponent<PhotoBakeDriver>();
+            bakeDriver.Configure(CreateFrameSource(tool.transform, bounds), floorVisualizer, tool.transform);
+
             // 5) The mode is not built yet. The player picks one from the menu below, so the room,
             //    the scan and the dollhouse are all built first and then a mode is stood up on demand.
 
@@ -261,6 +275,7 @@ namespace Chorewars.Runtime
             _bounds = bounds;
             _sourceLabel = source;
             _room = room;
+            _bakeDriver = bakeDriver;
             _camera = camera;
 
             hud.ModeSelected -= OnModeSelected;
@@ -335,6 +350,11 @@ namespace Chorewars.Runtime
             _room.Build(scanned);
             _floorVisualizer.Build(scanned, _room.FloorRenderer);
 
+            // Rebuilding the visualiser replaced its texture, so the bake has to be pointed at the
+            // new one and at the new floor height.
+            if (_bakeDriver != null)
+                _bakeDriver.Configure(CreateFrameSource(_tool, scanned), _floorVisualizer, _tool);
+
             // The tool's own bounds only drive keyboard movement in the editor; on device it follows
             // the controller. Keep them honest all the same.
             _toolDriver.Configure(FindRightController(), scanned, toolSpeedMetersPerSecond, toolHeightMeters);
@@ -343,6 +363,27 @@ namespace Chorewars.Runtime
 
             Debug.Log($"{LogPrefix}: play area re-derived from the scan — " +
                       $"{scanned.size.x:0.0}x{scanned.size.z:0.0} m at ({scanned.center.x:0.0}, {scanned.center.z:0.0}).");
+        }
+
+        /// <summary>
+        /// The camera the photo bake photographs the floor with, or null when there is none.
+        /// </summary>
+        /// <remarks>
+        /// In the editor this is a placeholder eye held above the tool, looking down. On device it
+        /// returns null until the headset's frames are wired in behind the same interface — which is
+        /// why the layer is allowed to be absent rather than assumed. Nothing downstream branches on
+        /// whether a photograph exists; it just does not get one.
+        /// </remarks>
+        private ISurfaceFrameSource CreateFrameSource(Transform tool, Bounds bounds)
+        {
+            if (!Application.isEditor) return null;
+
+            return new SyntheticFrameSource(
+                tool,
+                new Vector3(0f, photoEyeHeightMeters, 0f),
+                photoVerticalFieldOfViewDegrees,
+                1f,
+                bounds.min.y);
         }
 
         private static Camera FindCamera()

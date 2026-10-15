@@ -94,7 +94,7 @@ namespace Chorewars.Build
                 // build log, pull-telemetry, an agent reading either - would be WAY_OFF by
                 // construction. Report the artefact's real size on disk, and keep Unity's number
                 // only if the file cannot be stat-ed.
-                long bytes = summary.totalSize;
+                long bytes = (long)summary.totalSize;
                 try
                 {
                     if (File.Exists(outputPath)) bytes = new FileInfo(outputPath).Length;

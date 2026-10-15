@@ -88,7 +88,23 @@ namespace Chorewars.Build
             BuildSummary summary = report.summary;
 
             if (summary.result == BuildResult.Succeeded)
-                return $"built {outputPath} ({summary.totalSize / (1024f * 1024f):0.0} MB) in {summary.totalTime.TotalSeconds:0}s";
+            {
+                // Unity's summary.totalSize counts uncompressed and intermediate build output and
+                // reports a 39.6 MB APK as roughly 794 MB. Anything that consumes this figure - the
+                // build log, pull-telemetry, an agent reading either - would be WAY_OFF by
+                // construction. Report the artefact's real size on disk, and keep Unity's number
+                // only if the file cannot be stat-ed.
+                long bytes = summary.totalSize;
+                try
+                {
+                    if (File.Exists(outputPath)) bytes = new FileInfo(outputPath).Length;
+                }
+                catch (Exception)
+                {
+                }
+
+                return $"built {outputPath} ({bytes / (1024f * 1024f):0.0} MB on disk, {bytes} bytes) in {summary.totalTime.TotalSeconds:0}s";
+            }
 
             return $"build {summary.result}: {summary.totalErrors} error(s). See the console for details.";
         }

@@ -49,6 +49,12 @@ namespace Chorewars.Runtime
         private IScanSource _scanSource;
         private Bounds _bounds;
         private string _sourceLabel;
+        private PlaceholderRoom _room;
+
+        // True when the play area had to be guessed at startup because the scan had not run yet
+        // (the normal case on device). The guess is replaced once the scan reports a real extent.
+        private bool _playAreaFromGuess;
+        private bool _playAreaResolved;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
@@ -153,7 +159,13 @@ namespace Chorewars.Runtime
             var scannedBounds = scanSource.KnownBounds;
             var bounds = scannedBounds ?? provider.RoomBounds;
             var source = scannedBounds != null ? "Scan" : provider.Source;
-            Debug.Log($"{LogPrefix}: play area source={source}, size={bounds.size.x:0.0}x{bounds.size.z:0.0} m");
+
+            // A scan that has not run cannot know the room, and on device that is the normal case:
+            // the play area starts as the room provider's guess and is replaced by the real extent
+            // once the scan finishes (see OnScanAreaResolved).
+            _playAreaFromGuess = scannedBounds == null;
+
+            Debug.Log($"{LogPrefix}: play area source={source}, size={bounds.size.x:0.0}x{bounds.size.z:0.0} m{(_playAreaFromGuess ? " (a guess — no scan yet)" : "")}");
 
             // 2) Coverage map, given the real play-area bounds (the ±2 m default makes % meaningless).
             var mapGo = new GameObject("CoverageMap");
@@ -248,6 +260,7 @@ namespace Chorewars.Runtime
             _scanSource = scanSource;
             _bounds = bounds;
             _sourceLabel = source;
+            _room = room;
             _camera = camera;
 
             hud.ModeSelected -= OnModeSelected;
@@ -284,6 +297,7 @@ namespace Chorewars.Runtime
             mode.ConfigureRuntime(_hud, _floorVisualizer, _toolDriver, _bounds, timeLimitSeconds);
             mode.celebration = _celebration;
             mode.dollhouse = _dollhouse;
+            mode.pipeline = _pipeline;
             _mode = mode;
 
             _hud.HideModePanel();
@@ -293,8 +307,42 @@ namespace Chorewars.Runtime
             flowGo.transform.SetParent(_runtimeRoot, false);
             var flow = flowGo.AddComponent<ScanFlowController>();
             flow.Configure(_hud, _scanSource, _pipeline, _presenter, _dollhouseRoot, mode, _camera);
+            flow.ScanAreaResolved = OnScanAreaResolved;
 
             Debug.Log($"{LogPrefix}: '{info.DisplayName}' selected — awaiting room scan.");
+        }
+
+        /// <summary>
+        /// Replaces the guessed play area with the extent the scan actually found. Everything the
+        /// chore is played on is sized from these bounds — the coverage map that scores it, the floor
+        /// the tool paints, the placeholder room, the tool's own movement bounds, and each mode's
+        /// geometry — and on device none of it can be known until the scan runs, so the whole play
+        /// area is rebuilt here rather than trusted from startup. The mode has not begun yet, which
+        /// is what makes rebuilding it safe: it builds its geometry afterwards, from these bounds.
+        /// </summary>
+        private void OnScanAreaResolved(Bounds scanned)
+        {
+            if (!_playAreaFromGuess || _playAreaResolved) return;
+            if (_mode == null || !_mode.TryUpdatePlayBounds(scanned)) return;
+
+            _playAreaResolved = true;
+            _bounds = scanned;
+
+            _coverageMap.SetBounds(
+                new Vector2(scanned.min.x, scanned.min.z),
+                new Vector2(scanned.max.x, scanned.max.z));
+
+            _room.Build(scanned);
+            _floorVisualizer.Build(scanned, _room.FloorRenderer);
+
+            // The tool's own bounds only drive keyboard movement in the editor; on device it follows
+            // the controller. Keep them honest all the same.
+            _toolDriver.Configure(FindRightController(), scanned, toolSpeedMetersPerSecond, toolHeightMeters);
+
+            _hud.SetSource($"{_sourceLabel} | {scanned.size.x:0.0}x{scanned.size.z:0.0} m (scanned) | WASD move, E end, J juice");
+
+            Debug.Log($"{LogPrefix}: play area re-derived from the scan — " +
+                      $"{scanned.size.x:0.0}x{scanned.size.z:0.0} m at ({scanned.center.x:0.0}, {scanned.center.z:0.0}).");
         }
 
         private static Camera FindCamera()

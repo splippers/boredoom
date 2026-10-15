@@ -39,6 +39,23 @@ namespace Chorewars.Runtime
 
         public bool ScanComplete { get; private set; }
 
+        /// <summary>
+        /// The world-space extent of everything the scan found, or null if it found nothing yet.
+        /// This is the honest play area once a scan exists: before it, the only extent anyone can
+        /// offer is a guess, and on device a guess is all there is until the scan runs.
+        /// </summary>
+        public Bounds? ScannedBounds
+        {
+            get
+            {
+                if (_rooms.Count == 0) return null;
+
+                var bounds = _rooms[0].ToBounds();
+                for (int i = 1; i < _rooms.Count; i++) bounds.Encapsulate(_rooms[i].ToBounds());
+                return bounds;
+            }
+        }
+
         /// <summary>Latest per-room coverage percentages, keyed by room id (diagnostics).</summary>
         public IReadOnlyDictionary<string, float> RoomCoverage => _roomCoverage;
         private readonly Dictionary<string, float> _roomCoverage = new Dictionary<string, float>();

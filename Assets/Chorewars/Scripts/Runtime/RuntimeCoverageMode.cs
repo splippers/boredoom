@@ -89,6 +89,20 @@ namespace Chorewars.Runtime
             _startTime = Time.time;
         }
 
+        /// <summary>
+        /// Replaces the play area. Only honoured before the mode begins: every mode builds its own
+        /// geometry from these bounds in <see cref="OnModeBegun"/> — the grid, the mowing stripes,
+        /// the ghost's map — so moving them afterwards would leave that geometry describing a room
+        /// the player is no longer in. Returns false if the mode has already begun.
+        /// </summary>
+        public bool TryUpdatePlayBounds(Bounds playBounds)
+        {
+            if (_begun) return false;
+
+            PlayBounds = playBounds;
+            return true;
+        }
+
         protected override void OnTrackedPositionSampled(Vector3 worldPos)
         {
             FloorVisualizer?.Mark(worldPos);

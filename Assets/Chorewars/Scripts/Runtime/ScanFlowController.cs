@@ -31,6 +31,13 @@ namespace Chorewars.Runtime
         private Phase _phase = Phase.Ready;
         private float _presentUntil = -1f;
 
+        /// <summary>
+        /// Raised once the scan has finished and before the chore begins, with the world extent of
+        /// everything that was found. Until the scan runs, the play area can only be guessed at; this
+        /// is the first moment it is known, so it is where the guess is replaced by the real room.
+        /// </summary>
+        public Action<Bounds> ScanAreaResolved { get; set; }
+
         public void Configure(PlaceholderHud hud,
                               IScanSource source,
                               ScanToDollhousePipeline pipeline,
@@ -130,6 +137,14 @@ namespace Chorewars.Runtime
             _hud.SetScanProgress(1f, "SCAN COMPLETE");
             _hud.SetScanButtonLabel("DONE");
             _hud.ShowScanPanel("SCAN COMPLETE", "Your home model is being framed in front of you.");
+
+            // Hand over the real extent before the reveal frames it, so the reveal frames the room
+            // that was actually scanned rather than the placeholder the game started with.
+            if (_pipeline != null)
+            {
+                var scanned = _pipeline.ScannedBounds;
+                if (scanned != null) ScanAreaResolved?.Invoke(scanned.Value);
+            }
 
             _presentUntil = Time.unscaledTime + 2.4f;
 

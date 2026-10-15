@@ -109,9 +109,12 @@ namespace Chorewars.Build
                 Path.Combine(HubAndroidPlayerPath, "SDK"),
                 new[] { "ANDROID_SDK_ROOT", "ANDROID_HOME" }, "platform-tools", "adb");
 
+            // ndk-build lives at the NDK root and is a shell script, not a directory: it is the
+            // required *file* with no required directory. Passing it as a directory reports every
+            // valid NDK as incomplete, which is a whole afternoon of confusion.
             Ndk = Describe(ToolKind.Ndk, ExternalToolsPath("ndkRootPath"), EditorPrefs.GetString(NdkPreference, null),
                 Path.Combine(HubAndroidPlayerPath, "NDK"),
-                new[] { "ANDROID_NDK_ROOT", "ANDROID_NDK_HOME" }, "ndk-build", null);
+                new[] { "ANDROID_NDK_ROOT", "ANDROID_NDK_HOME" }, null, "ndk-build");
         }
 
         public static bool AllUsable

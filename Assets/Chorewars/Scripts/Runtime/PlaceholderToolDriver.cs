@@ -16,6 +16,7 @@ namespace Chorewars.Runtime
         private Bounds _bounds;
         private float _speed = 1.6f;
         private float _height = 0.9f;
+        private const float HeadAheadMeters = 1.0f;
 
         /// <summary>Set when the player asks to end the session (E or Enter).</summary>
         public bool EndRequested { get; private set; }
@@ -61,6 +62,19 @@ namespace Chorewars.Runtime
             {
                 var followed = _followTarget.position;
                 SetPosition(followed.x, followed.z);
+                return;
+            }
+
+            // Hands-free on the headset: no controller and no keyboard, so the tool is the spot on the
+            // floor a metre ahead of the player. Walking and turning sweep it, like pushing a hoover.
+            if (!Application.isEditor && Camera.main != null)
+            {
+                var head = Camera.main.transform;
+                var flatForward = Vector3.ProjectOnPlane(head.forward, Vector3.up);
+                if (flatForward.sqrMagnitude < 0.01f) flatForward = Vector3.ProjectOnPlane(head.up, Vector3.up);
+                var ahead = head.position + flatForward.normalized * HeadAheadMeters;
+                var smoothed = Vector3.Lerp(transform.position, ahead, 1f - Mathf.Exp(-10f * Time.deltaTime));
+                SetPosition(smoothed.x, smoothed.z);
                 return;
             }
 

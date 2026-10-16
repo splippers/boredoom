@@ -12,6 +12,19 @@ namespace Chorewars.Runtime
         public float floorY;
         public float wallHeight;
 
+        /// <summary>
+        /// True when the box is a stand-in rather than a measurement of a real room: the play-space
+        /// boundary, or a size assumed because the scan could see nothing.
+        /// </summary>
+        /// <remarks>
+        /// The dollhouse may still draw it, so there is something to look at before any room has been
+        /// named, but nothing in the house map treats it as a room. Naming a spot inside it makes a
+        /// new room rather than relabelling the whole play space as a kitchen, and it is hidden from
+        /// the miniature once the player has named a real one. It defaults to false, so a room from a
+        /// working scan needs no change.
+        /// </remarks>
+        public bool assumed;
+
         public Bounds ToBounds()
         {
             var size = new Vector3(

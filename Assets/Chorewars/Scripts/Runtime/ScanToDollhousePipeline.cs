@@ -131,6 +131,11 @@ namespace Chorewars.Runtime
                 return;
             }
 
+            // A rescan replaces the miniature rather than adding to it, or the boxes of the last
+            // scan would still be standing in the dollhouse. Rooms the house map owns are put back by
+            // EnsureRoom, which the map calls when it notices they are gone.
+            if (_miniatureRoot != null) DestroyNow(_miniatureRoot.gameObject);
+
             // Derive the miniature scale from the manager's public world -> dollhouse mapping,
             // so we never need access to its private serialized fields.
             var origin = dollhouseManager.WorldToDollhouse(Vector3.zero);
@@ -167,6 +172,84 @@ namespace Chorewars.Runtime
                       $"-> {renderers.Length} renderers (rooms so far: {_rooms.Count})");
 
             if (floorRenderer != null) AttachFloorTexture(room, floorRenderer);
+        }
+
+        /// <summary>
+        /// Adds a room the house map owns to the miniature, or re-shapes one that map has grown.
+        /// </summary>
+        /// <remarks>
+        /// Rooms the scan found arrive through <see cref="IScanSource.RoomScanned"/>. These do not: the
+        /// player made them by naming a space, so the house map asks for the box itself. The box is
+        /// always drawn at the size the map currently says, which is how a room the player has walked
+        /// around ends up as big as their walk made it.
+        ///
+        /// These boxes are deliberately not registered with the <see cref="DollhouseManager"/>. They
+        /// are rebuilt as the walk grows them, and the manager keeps the renderers it was handed, so a
+        /// rebuild would leave it holding destroyed ones. Nothing is lost by that: a room the player
+        /// named has no cleaning footage of its own — coverage and the clean/dirty tinting are over
+        /// the play area — so its box is the frame the house is drawn in, not a thing that gets clean.
+        /// </remarks>
+        public bool EnsureRoom(RoomScan room)
+        {
+            if (string.IsNullOrEmpty(room.roomId)) return false;
+
+            int index = -1;
+            for (int i = 0; i < _rooms.Count; i++)
+            {
+                if (_rooms[i].roomId != room.roomId) continue;
+                index = i;
+                break;
+            }
+
+            bool changed = index < 0 || !SameRect(_rooms[index].boundsXZ, room.boundsXZ);
+
+            if (index < 0) _rooms.Add(room);
+            else _rooms[index] = room;
+
+            if (!changed || dollhouseManager == null) return false;
+
+            if (_miniatureRoot == null) PrepareMiniature();
+            if (_miniatureRoot == null) return false;
+
+            if (_roomGeometry.TryGetValue(room.roomId, out var existing))
+            {
+                if (existing != null) DestroyNow(existing);
+                _roomGeometry.Remove(room.roomId);
+                _photoFloors.Remove(room.roomId);
+            }
+
+            _roomGeometry[room.roomId] = BuildRoom(room, _miniatureRoot);
+            return true;
+        }
+
+        /// <summary>
+        /// Shows or hides a room's box in the miniature, without the map forgetting the room.
+        /// </summary>
+        /// <remarks>
+        /// Used for the stand-in box: once the player has named a real room, a box that was only ever
+        /// a guess at the shape of the play area says the house is bigger than it is, so it is taken
+        /// out of the miniature. It stays in the map, so cleaning and coverage are untouched.
+        /// </remarks>
+        public void SetMiniatureVisible(string roomId, bool visible)
+        {
+            if (string.IsNullOrEmpty(roomId)) return;
+            if (!_roomGeometry.TryGetValue(roomId, out var geometry) || geometry == null) return;
+
+            geometry.SetActive(visible);
+        }
+
+        private static bool SameRect(Rect a, Rect b)
+            => Mathf.Abs(a.xMin - b.xMin) < 0.001f
+               && Mathf.Abs(a.yMin - b.yMin) < 0.001f
+               && Mathf.Abs(a.xMax - b.xMax) < 0.001f
+               && Mathf.Abs(a.yMax - b.yMax) < 0.001f;
+
+        private static void DestroyNow(Object target)
+        {
+            if (target == null) return;
+
+            if (Application.isPlaying) Destroy(target);
+            else DestroyImmediate(target);
         }
 
         /// <summary>
@@ -383,7 +466,7 @@ namespace Chorewars.Runtime
         private static void StripCollider(GameObject go)
         {
             var collider = go.GetComponent<Collider>();
-            if (collider != null) Destroy(collider);
+            if (collider != null) DestroyNow(collider);
         }
 
         private void Update()

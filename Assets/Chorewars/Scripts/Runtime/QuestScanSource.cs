@@ -185,7 +185,8 @@ namespace Chorewars.Runtime
                     roomId = "Play Space",
                     boundsXZ = boundary,
                     floorY = 0f,
-                    wallHeight = 2.4f
+                    wallHeight = 2.4f,
+                    assumed = true
                 };
             }
 
@@ -198,7 +199,8 @@ namespace Chorewars.Runtime
                 roomId = "Room-001",
                 boundsXZ = new Rect(-half, -half, half * 2f, half * 2f),
                 floorY = 0f,
-                wallHeight = 2.4f
+                wallHeight = 2.4f,
+                assumed = true
             };
         }
     }

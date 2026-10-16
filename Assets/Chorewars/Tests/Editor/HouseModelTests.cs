@@ -139,14 +139,16 @@ namespace Chorewars.Tests
         [Test]
         public void BuildLinks_WalkingThroughSpaceThatIsNotARoom_DrawsNoDoor()
         {
-            // The gap between the rooms belongs to neither: an unassigned stretch of floor is not a
-            // doorway, and inventing a link would draw a door where the player simply walked.
+            // The rooms are far enough apart that the walk really does leave the map between them: a
+            // long unassigned stretch of floor is not a doorway, and inventing a link would draw a
+            // door where the player simply walked. (A step or two of floor between two rooms is a
+            // different thing, and is a door — see WalkGrownRoomTests.)
             var rooms = new List<RoomScan>
             {
                 Room("kitchen", -1.5f, 0f, 1.5f, 3f),
-                Room("hall", -1.5f, -3f, 1.5f, -1f),
+                Room("hall", -1.5f, -6f, 1.5f, -4f),
             };
-            var path = StraightWalk(new Vector3(0f, 1.6f, 2f), new Vector3(0f, 1.6f, -2f), 40);
+            var path = StraightWalk(new Vector3(0f, 1.6f, 2f), new Vector3(0f, 1.6f, -5f), 80);
 
             var links = HouseMapBuilder.BuildLinks(rooms, path);
 

@@ -18,6 +18,11 @@ namespace Chorewars.Runtime
     /// <see cref="HandsFreeInput"/>. The naming itself is done through <see cref="NameRoomAt"/>, so the
     /// same seam serves the voice route and the gaze-dwell list without either of them knowing about
     /// the other.
+    ///
+    /// Naming is also how a room comes to exist. The scan is not depended on for the shape of the
+    /// house: a name said where no room covers the player makes one on the spot, and their walk grows
+    /// it to the size of the space they are in. That is what gives a headset with no usable meshing
+    /// more than one room, and so any doors at all.
     /// </remarks>
     public sealed class HouseMapDriver : MonoBehaviour
     {
@@ -25,6 +30,15 @@ namespace Chorewars.Runtime
         [SerializeField] private float minSampleDistanceMeters = 0.05f;
         [SerializeField] private float linkRecomputeIntervalSeconds = 1f;
         [SerializeField] private float saveDebounceSeconds = 2f;
+
+        [Header("Rooms the player makes by naming one")]
+        [Tooltip("How wide a room is when it is made, in metres. The walk grows it from there.")]
+        [SerializeField] private float roomSeedSizeMeters = 2f;
+        [Tooltip("Floor kept around the furthest place the player walked, so the walls are not on their path.")]
+        [SerializeField] private float roomGrowthMarginMeters = HouseMapBuilder.DefaultGrowthMarginMeters;
+        [Tooltip("How far a room may grow from the spot it was named at; stops it following the player across the house.")]
+        [SerializeField] private float roomMaxHalfExtentMeters = HouseMapBuilder.DefaultMaxRoomHalfExtentMeters;
+        [SerializeField] private float roomWallHeightMeters = 2.4f;
 
         [Header("Where the map is written")]
         [Tooltip("Leave empty for house.json beside the player profile.")]
@@ -40,14 +54,33 @@ namespace Chorewars.Runtime
         private readonly List<RoomLink> _links = new List<RoomLink>();
         private readonly HashSet<string> _registered = new HashSet<string>();
 
+        // Where each walk-made room was named. Growth is capped around this, so a room cannot slide
+        // across the house following the player. Rooms the scan found are not in here and are not grown.
+        private readonly Dictionary<string, Vector2> _roomAnchors = new Dictionary<string, Vector2>();
+
+        // Ids of the boxes that only stand in for a room (the play area). They are not rooms the map
+        // holds, but they are remembered so their boxes can be taken out of the miniature once there is
+        // a real room to draw.
+        private readonly HashSet<string> _assumedRooms = new HashSet<string>();
+
         private float _nextSampleAt;
         private float _nextLinkAt;
+        private float _nextMiniatureAt;
         private float _pendingSaveAt = -1f;
         private bool _dirty;
 
-        private string StorePath => string.IsNullOrEmpty(storePathOverride)
-            ? HouseMapStore.DefaultPath
-            : storePathOverride;
+        /// <summary>
+        /// Where the map is read and written: <c>house.json</c> beside the player profile unless the
+        /// inspector says otherwise.
+        /// </summary>
+        /// <remarks>
+        /// Settable so a test can keep its house to itself rather than writing over the player's.
+        /// </remarks>
+        public string StorePath
+        {
+            get => string.IsNullOrEmpty(storePathOverride) ? HouseMapStore.DefaultPath : storePathOverride;
+            set => storePathOverride = value;
+        }
 
         /// <summary>The player's walked path, oldest first. Read-only: the list is live.</summary>
         public IReadOnlyList<Vector3> HeadPath => _headPath;
@@ -68,16 +101,52 @@ namespace Chorewars.Runtime
             _head = head;
 
             LoadSaved();
+            DrawRestoredHouse();
+        }
+
+        /// <summary>Puts the restored rooms, names and doors back on the miniature.</summary>
+        private void DrawRestoredHouse()
+        {
+            if (_presenter == null) return;
+
+            for (int i = 0; i < _rooms.Count; i++)
+            {
+                _presenter.SetRoom(_rooms[i]);
+                _presenter.SetName(_rooms[i].roomId, HouseMapBuilder.NameOf(_names, _rooms[i].roomId));
+            }
+
+            if (_links.Count > 0) _presenter.SetLinks(_links);
         }
 
         /// <summary>
-        /// Restores names and links from the last session, so a house that was named yesterday is
-        /// still called the same thing today. Rooms themselves are not restored: they come from the
-        /// scan, and a room whose id no longer appears in the scan has nothing to name.
+        /// Restores the house from the last session: the rooms the player made by naming them, what
+        /// they called them, and the doorways they walked through.
         /// </summary>
+        /// <remarks>
+        /// The walk itself is not restored — the head path is this session's — so the doors found last
+        /// time are kept as a baseline for this session's walk to add to. Without that, a restart would
+        /// empty the dollhouse of doors until the player happened to pace through every one again.
+        /// </remarks>
         private void LoadSaved()
         {
             var saved = HouseMapStore.Load(StorePath);
+
+            _rooms.Clear();
+            _roomAnchors.Clear();
+            _registered.Clear();
+
+            for (int i = 0; i < saved.rooms.Count; i++)
+            {
+                var room = saved.rooms[i];
+                if (string.IsNullOrEmpty(room.roomId) || room.assumed) continue;
+
+                _rooms.Add(room);
+                _registered.Add(room.roomId);
+
+                // Growth is capped around where a room was named. That spot is not stored, so the room
+                // as it stands is the anchor: it may still grow, but only around where it now is.
+                _roomAnchors[room.roomId] = room.boundsXZ.center;
+            }
 
             _names.Clear();
             for (int i = 0; i < saved.names.Count; i++)
@@ -86,18 +155,37 @@ namespace Chorewars.Runtime
             _links.Clear();
             _links.AddRange(saved.links);
 
-            if (_names.Count > 0 || _links.Count > 0)
-                Debug.Log($"[HouseMap] restored {_names.Count} name(s) and {_links.Count} doorway(s) from {StorePath}.");
+            if (_rooms.Count > 0 || _names.Count > 0 || _links.Count > 0)
+            {
+                Debug.Log($"[HouseMap] restored {_rooms.Count} room(s), {_names.Count} name(s) and " +
+                          $"{_links.Count} doorway(s) from {StorePath}.");
+            }
         }
 
         /// <summary>
-        /// Names whichever room the given world point stands in. This is the single entry point for
-        /// both the spoken route and the gaze-dwell list; it returns false when the player is standing
-        /// somewhere no room was scanned, rather than inventing a room to name.
+        /// Names whichever room the given world point stands in, making the room first if the player is
+        /// standing on floor that belongs to none.
         /// </summary>
+        /// <remarks>
+        /// This is the single entry point for both the spoken route and the gaze-dwell list, and making
+        /// the room is why a house with no usable scan still has rooms at all. On a headset where the
+        /// meshing yields nothing, the only box is the stand-in for the play area; without this a
+        /// second room could never exist — naming a space would relabel the play area over and over,
+        /// and no walk could ever connect two rooms, so there would be no doors.
+        ///
+        /// The stand-in box is deliberately not in <see cref="_rooms"/>, so "this is the kitchen" said
+        /// anywhere in the play space makes a kitchen rather than renaming everything.
+        /// </remarks>
         public bool NameRoomAt(Vector3 worldPoint, string name)
         {
-            if (!HouseMapBuilder.TryNameRoomAt(_rooms, worldPoint, name, out var named)) return false;
+            if (string.IsNullOrEmpty(name)) return false;
+
+            if (!HouseMapBuilder.TryNameRoomAt(_rooms, worldPoint, name, out var named))
+            {
+                if (!MakeRoomAt(worldPoint, out var made)) return false;
+
+                named = HouseMapBuilder.NameFor(made.roomId, name);
+            }
 
             HouseMapBuilder.ApplyName(_names, named);
 
@@ -147,6 +235,7 @@ namespace Chorewars.Runtime
             AdoptScannedRooms();
             SampleHeadPath();
             RecomputeLinks();
+            RefreshMiniature();
             FlushSaveIfDue();
         }
 
@@ -160,6 +249,19 @@ namespace Chorewars.Runtime
             {
                 var room = rooms[i];
                 if (string.IsNullOrEmpty(room.roomId) || !_registered.Add(room.roomId)) continue;
+
+                if (room.assumed)
+                {
+                    // A box standing in for the play area rather than a room the player has. The map
+                    // does not hold it, or naming a spot inside it could only ever relabel the whole
+                    // play space; but its id is remembered so a new room cannot take it and its box can
+                    // be taken out of the miniature once there is a real room to draw.
+                    _assumedRooms.Add(room.roomId);
+                    HideAssumedBoxes();
+
+                    Debug.Log($"[HouseMap] {room.roomId} stands in for the play area; it is not a room the player named.");
+                    continue;
+                }
 
                 _rooms.Add(room);
 
@@ -193,6 +295,83 @@ namespace Chorewars.Runtime
             if (Vector3.Distance(_headPath[_headPath.Count - 1], position) < minSampleDistanceMeters) return;
 
             _headPath.Add(position);
+            GrowRoomFromSample(position);
+        }
+
+        /// <summary>
+        /// Grows the room the player is standing in to cover where they just walked.
+        /// </summary>
+        /// <remarks>
+        /// Only rooms the player named are grown. A room the scan found has already been measured, and
+        /// the walk has nothing to add to it.
+        /// </remarks>
+        private void GrowRoomFromSample(Vector3 position)
+        {
+            if (_roomAnchors.Count == 0) return;
+
+            string roomId = HouseMapBuilder.FindRoomIdAt(_rooms, position);
+            if (string.IsNullOrEmpty(roomId)) return;
+            if (!_roomAnchors.TryGetValue(roomId, out var anchor)) return;
+
+            bool grew = HouseMapBuilder.TryGrowRoom(_rooms, roomId, anchor,
+                new Vector2(position.x, position.z), roomGrowthMarginMeters, roomMaxHalfExtentMeters);
+
+            if (!grew) return;
+
+            if (_presenter != null && TryReadRoom(roomId, out var grown)) _presenter.SetRoom(grown);
+
+            QueueSave();
+        }
+
+        /// <summary>
+        /// Makes a room wherever the player is standing, for a space they have named that no room
+        /// covers.
+        /// </summary>
+        private bool MakeRoomAt(Vector3 worldPoint, out RoomScan made)
+        {
+            made = default;
+
+            string roomId = HouseMapBuilder.NextRoomId(_rooms, _registered);
+            made = HouseMapBuilder.CreateRoomAt(roomId, worldPoint,
+                Mathf.Max(0.25f, roomSeedSizeMeters) * 0.5f, roomWallHeightMeters);
+
+            _rooms.Add(made);
+            _registered.Add(roomId);
+            _roomAnchors[roomId] = new Vector2(worldPoint.x, worldPoint.z);
+
+            if (_presenter != null) _presenter.SetRoom(made);
+            if (_pipeline != null) _pipeline.EnsureRoom(made);
+
+            // The stand-in box is the play area, not a room. It goes as soon as there is a real room
+            // to draw in its place, or the dollhouse would show a house bigger than the player's.
+            HideAssumedBoxes();
+
+            _dirty = true;
+            Debug.Log($"[HouseMap] made {roomId} where the player stood " +
+                      $"({made.boundsXZ.width:0.0}x{made.boundsXZ.height:0.0} m) — {_rooms.Count} room(s) known.");
+            return true;
+        }
+
+        private bool TryReadRoom(string roomId, out RoomScan room)
+        {
+            for (int i = 0; i < _rooms.Count; i++)
+            {
+                if (_rooms[i].roomId != roomId) continue;
+
+                room = _rooms[i];
+                return true;
+            }
+
+            room = default;
+            return false;
+        }
+
+        private void HideAssumedBoxes()
+        {
+            if (_pipeline == null || _assumedRooms.Count == 0) return;
+            if (_roomAnchors.Count == 0) return;
+
+            foreach (var roomId in _assumedRooms) _pipeline.SetMiniatureVisible(roomId, false);
         }
 
         private void RecomputeLinks()
@@ -204,15 +383,48 @@ namespace Chorewars.Runtime
 
             var found = HouseMapBuilder.BuildLinks(_rooms, _headPath);
 
-            if (SameLinks(found, _links)) return;
+            // The walked path only ever grows, so a door found on it stays found; a door restored from
+            // last session stays too, because this session has no walk through it to find it again.
+            var merged = new List<RoomLink>(_links);
+            for (int i = 0; i < found.Count; i++)
+                if (!HouseMapBuilder.RecordsDoor(merged, found[i])) merged.Add(found[i]);
+
+            if (SameLinks(merged, _links)) return;
 
             _links.Clear();
-            _links.AddRange(found);
+            _links.AddRange(merged);
 
             if (_presenter != null) _presenter.SetLinks(_links);
 
             QueueSave();
             Debug.Log($"[HouseMap] {_links.Count} doorway(s) after {_headPath.Count} path samples.");
+        }
+
+        /// <summary>
+        /// Keeps the miniature holding the rooms the map knows, at the size the map says they are.
+        /// </summary>
+        /// <remarks>
+        /// This cannot be done only when a room changes. A scan that starts after the player has
+        /// already named a room rebuilds the miniature and takes their rooms out of it, so the map puts
+        /// them back; and a room the walk has grown has to be redrawn at the size it is now. One pass a
+        /// second is enough for both, and cheap: a room that has not changed is not rebuilt.
+        /// </remarks>
+        private void RefreshMiniature()
+        {
+            if (_pipeline == null || _rooms.Count == 0) return;
+            if (Time.unscaledTime < _nextMiniatureAt) return;
+
+            _nextMiniatureAt = Time.unscaledTime + Mathf.Max(0.25f, linkRecomputeIntervalSeconds);
+
+            bool anyChanged = false;
+            for (int i = 0; i < _rooms.Count; i++)
+            {
+                if (!_roomAnchors.ContainsKey(_rooms[i].roomId)) continue;   // scan rooms are the pipeline's
+                if (_pipeline.EnsureRoom(_rooms[i])) anyChanged = true;
+            }
+
+            // A room that grew moved the wall its doorway stands on, so the arch is put back on it.
+            if (anyChanged && _presenter != null) _presenter.SetLinks(_links);
         }
 
         /// <summary>

@@ -93,6 +93,17 @@ namespace Chorewars.HandsFree
                 return true;
             }
 
+            // Naming a room is checked after the fixed phrases so "this is clean" stays a
+            // statement about the floor, and before the ORAC fallback so "hey ORAC, this is the
+            // kitchen" names a room rather than being handed on as chatter.
+            string roomName;
+            if (RoomNameExtractor.TryFromNormalized(body, out roomName))
+            {
+                request = Make(ChorewarsIntent.NameRoom, transcript);
+                request.Argument = roomName;
+                return true;
+            }
+
             // Addressed but unintelligible: give it to ORAC rather than failing silently.
             if (addressed)
             {
@@ -161,6 +172,8 @@ namespace Chorewars.HandsFree
                 case ChorewarsIntent.Cancel: return "no";
                 case ChorewarsIntent.CallOrac: return "ask ORAC";
                 case ChorewarsIntent.TakeNote: return "take a note";
+                case ChorewarsIntent.NameRoom:
+                    return string.IsNullOrEmpty(argument) ? "name this room" : "call this the " + argument;
                 default: return intent.ToString();
             }
         }

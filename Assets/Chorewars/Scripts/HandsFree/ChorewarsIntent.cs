@@ -27,7 +27,10 @@ namespace Chorewars.HandsFree
         Confirm,
         Cancel,
         CallOrac,
-        TakeNote
+        TakeNote,
+
+        /// <summary>"This is the kitchen" - the player is naming the room they are standing in.</summary>
+        NameRoom
     }
 
     /// <summary>

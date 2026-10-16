@@ -79,8 +79,18 @@ namespace Chorewars.Runtime
             "Kitchen", "Lounge", "Hall", "Bedroom", "Bathroom", "Stairs", "Other",
         };
 
-        /// <summary>The room a world point stands in, or null when it stands in none of them.</summary>
-        /// <remarks>
+        /// <summary>Whether the scan still knows about a room by this id.</summary>
+        public static bool HasRoom(IReadOnlyList<RoomScan> rooms, string roomId)
+        {
+            if (rooms == null || string.IsNullOrEmpty(roomId)) return false;
+
+            for (int i = 0; i < rooms.Count; i++)
+                if (rooms[i].roomId == roomId) return true;
+
+            return false;
+        }
+
+        /// <summary>The room a world point stands in, or null when it stands in none of them.</summary>        /// <remarks>
         /// A point exactly on the shared edge of two rooms belongs to the one that starts there, which
         /// is what a floor standing on a doorway does; it is not a gap to be missed.
         /// </remarks>
@@ -208,6 +218,42 @@ namespace Chorewars.Runtime
                 if (names[i].IsValid && !ids.Contains(names[i].roomId)) ids.Add(names[i].roomId);
 
             return ids;
+        }
+
+        /// <summary>
+        /// Applies a name, replacing whatever the room was called before.
+        /// </summary>
+        /// <remarks>
+        /// A player who says "this is the kitchen" and later "call this the scullery" has renamed the
+        /// room, not created a second one, so the room keeps its place in the list and its old name is
+        /// gone. Keeping both would leave the dollhouse with two labels on one room and no way to tell
+        /// which is current.
+        /// </remarks>
+        public static bool ApplyName(List<RoomName> names, RoomName named)
+        {
+            if (names == null || !named.IsValid) return false;
+
+            for (int i = 0; i < names.Count; i++)
+            {
+                if (names[i].roomId != named.roomId) continue;
+                names[i] = named;
+                return true;
+            }
+
+            names.Add(named);
+            return true;
+        }
+
+        /// <summary>What the room is called, or null if nobody has said. The last name wins.</summary>
+        public static string NameOf(IReadOnlyList<RoomName> names, string roomId)
+        {
+            if (names == null || string.IsNullOrEmpty(roomId)) return null;
+
+            string found = null;
+            for (int i = 0; i < names.Count; i++)
+                if (names[i].IsValid && names[i].roomId == roomId) found = names[i].name;
+
+            return found;
         }
     }
 }

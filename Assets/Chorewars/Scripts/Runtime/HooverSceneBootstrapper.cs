@@ -30,6 +30,12 @@ namespace Chorewars.Runtime
 
         private static HooverSceneBootstrapper _instance;
 
+        /// <summary>
+        /// The house map for the running scene, or null before the scene is built. Callers that can
+        /// name a room (voice, the gaze-dwell list) reach the map through here.
+        /// </summary>
+        public static HouseMapDriver HouseMap => _instance != null ? _instance._mapDriver : null;
+
         private RuntimeCoverageMode _mode;
         private string _pendingScene;
         private float _giveUpAt;
@@ -52,6 +58,7 @@ namespace Chorewars.Runtime
         private Transform _dollhouseRoot;
         private ScanToDollhousePipeline _pipeline;
         private DollhousePresenter _presenter;
+        private HouseMapDriver _mapDriver;
         private IScanSource _scanSource;
         private Bounds _bounds;
         private string _sourceLabel;
@@ -244,6 +251,15 @@ namespace Chorewars.Runtime
 
             var presenter = dollhouseGo.AddComponent<DollhousePresenter>();
 
+            // 7a) House map: the rooms the player named and the doors they walked through, drawn on
+            // the miniature. The doors come from the player's own walk (the camera is the head); the
+            // tool's path is useless here because it only cleans the floor in front of them.
+            var mapPresenter = dollhouseGo.AddComponent<HouseMapPresenter>();
+            mapPresenter.Configure(dollhouse, camera, dollhouseGo.transform);
+
+            var mapDriver = dollhouseGo.AddComponent<HouseMapDriver>();
+            mapDriver.Configure(pipeline, mapPresenter, camera.transform);
+
             // 7b) Room-clean celebration: glow + confetti + floating points + haptics + slow-mo.
             var celebration = dollhouseGo.AddComponent<RoomCleanCelebration>();
             celebration.Configure(dollhouse, camera);
@@ -271,6 +287,7 @@ namespace Chorewars.Runtime
             _dollhouseRoot = dollhouseGo.transform;
             _pipeline = pipeline;
             _presenter = presenter;
+            _mapDriver = mapDriver;
             _scanSource = scanSource;
             _bounds = bounds;
             _sourceLabel = source;

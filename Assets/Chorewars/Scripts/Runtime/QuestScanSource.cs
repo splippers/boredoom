@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Chorewars.AR;
+using Chorewars.Diagnostics;
 using UnityEngine;
 
 namespace Chorewars.Runtime
@@ -130,6 +131,15 @@ namespace Chorewars.Runtime
             _vertices.Clear();
             if (spatialMeshTracker != null) spatialMeshTracker.CollectWorldVertices(_vertices);
 
+            // The count the mesh slice lives or dies by, declared where it is known. Zero vertices is
+            // the silent fallback — the runtime produced no geometry — so it is judged WayOff rather
+            // than waved through, and it reaches MQ3.log where the report can see it (a bare Debug.Log
+            // only reaches logcat, which the telemetry pull does not read).
+            ExpectationRegistry.Expect(
+                "scanVertices", _vertices.Count,
+                ExpectationRange.AtLeast(1), ExpectationRange.AtLeast(0),
+                "vertices", "the room scan captured geometry from the environment");
+
             List<RoomScan> rooms = null;
 
             if (_vertices.Count > 0)
@@ -152,6 +162,8 @@ namespace Chorewars.Runtime
 
             foreach (var room in rooms) RoomScanned?.Invoke(room);
 
+            TelemetryLogger.Info("Scan",
+                $"scan complete — {rooms.Count} room(s) from {_vertices.Count} captured vertices.");
             Debug.Log($"[QuestScanSource] Scan complete — {rooms.Count} room(s) from {_vertices.Count} captured vertices.");
         }
 

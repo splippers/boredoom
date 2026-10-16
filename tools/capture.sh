@@ -7,11 +7,8 @@ set -u
 PACKAGE="com.boredoom.chorewars"
 DEVICE_DIR="/sdcard/Android/data/$PACKAGE/files"
 
-n=$(adb devices | grep -c -P '\tdevice$')
-if [ "$n" -ne 1 ]; then
-    echo "expected exactly one device, found $n" >&2
-    exit 1
-fi
+source "$(dirname "${BASH_SOURCE[0]}")/quest-device.sh"
+select_quest || exit 1
 
 LABEL="${1:-shot}"
 TIMEOUT="${2:-60}"

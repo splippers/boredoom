@@ -14,11 +14,8 @@ if [ ! -f "$APK" ]; then
     exit 1
 fi
 
-n=$(adb devices | grep -c -P '\tdevice$')
-if [ "$n" -ne 1 ]; then
-    echo "expected exactly one device, found $n" >&2
-    exit 1
-fi
+source "$(dirname "${BASH_SOURCE[0]}")/quest-device.sh"
+select_quest || exit 1
 
 adb install -r "$APK"
 if [ $? -ne  0 ]; then

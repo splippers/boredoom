@@ -7,12 +7,8 @@ set -u
 PACKAGE="com.boredoom.chorewars"
 DEVICE_DIR="/sdcard/Android/data/$PACKAGE/files"
 
-# Check for exactly one device
-n=$(adb devices | grep -c -P '\tdevice$')
-if [ "$n" -ne 1 ]; then
-    echo "expected exactly one device, found $n" >&2
-    exit 1
-fi
+source "$(dirname "${BASH_SOURCE[0]}")/quest-device.sh"
+select_quest || exit 1
 
 OUT="${1:-telemetry-pull/$(date +%Y%m%d-%H%M%S)}"
 mkdir -p "$OUT"

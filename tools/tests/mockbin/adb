@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Fake adb for the tools tests. MOCK_DEVICES is a list of entries separated by ';', each "serial|state|extra info",
+# for example "2G0YC1ZFB408XG|device|usb:1-2 product:eureka model:Quest_3 device:eureka".
+# Every call is logged to $MOCK_LOG with the serial adb was pointed at (ANDROID_SERIAL), so tests can prove the phone is never targeted.
+echo "[${ANDROID_SERIAL:-none}] adb $*" >> "${MOCK_LOG:-/dev/null}"
+args=("$@")
+case "${args[0]:-}" in
+  devices)
+    echo "List of devices attached"
+    IFS=';' read -ra entries <<< "${MOCK_DEVICES:-}"
+    for e in "${entries[@]}"; do
+      IFS='|' read -r serial state info <<< "$e"
+      if [ "${args[1]:-}" = "-l" ]; then printf '%-22s %s %s\n' "$serial" "$state" "$info"; else printf '%s\t%s\n' "$serial" "$state"; fi
+    done
+    echo ;;
+  pull)
+    dst="${args[2]:-.}"; src="${args[1]:-x}"
+    [ "${MOCK_PULL_FAIL_MATCH:-}" != "" ] && [[ "$src" == *"$MOCK_PULL_FAIL_MATCH"* ]] && { echo "adb: error: failed to stat remote object '$src'" >&2; exit 1; }
+    if [[ "$dst" == */ || -d "$dst" ]]; then mkdir -p "$dst"; echo data > "${dst%/}/$(basename "$src")"; else echo data > "$dst"; fi
+    echo "1 file pulled" ;;
+  install) echo "Performing Streamed Install"; echo "Success" ;;
+  shell)
+    cmd="${args[*]:1}"
+    if [[ "$cmd" == *"ls"*"shots"* ]]; then
+      n=$(cat "${MOCK_STATE:-/tmp/mock_state}" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "${MOCK_STATE:-/tmp/mock_state}"
+      [ -n "${MOCK_STALE:-}" ] && echo "shot_110000_${MOCK_LABEL:-shot}.png"
+      if [ "$n" -gt "${MOCK_SHOT_AFTER:-2}" ] && [ "${MOCK_SHOT_AFTER:-2}" != "never" ]; then echo "shot_120000_${MOCK_LABEL:-shot}.png"; fi
+    fi
+    [[ "$cmd" == *monkey* ]] && echo "Events injected: 1" ;;
+esac
+exit 0

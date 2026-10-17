@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Shows the last N lines (default 40, max 200) of the game's log on this headset. Read-only.
+# Written by: Claude (AI). Passenger: Jon Davis (ideas man; directed and tested, did not write this code).
+n="${1:-40}"
+case "$n" in ''|*[!0-9]*) echo "usage: orac-log [LINES]" >&2; exit 2;; esac
+[ "$n" -gt 200 ] && n=200
+adb connect localhost:5555 >/dev/null 2>&1
+adb -s localhost:5555 shell "tail -n $n /sdcard/Android/data/com.boredoom.chorewars/files/MQ3.log" 2>&1 | cut -c1-300

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# One screen of headset vitals: battery, free storage, whether the game is running, its last log line. Read-only.
+# Written by: Claude (AI). Passenger: Jon Davis (ideas man; directed and tested, did not write this code).
+adb connect localhost:5555 >/dev/null 2>&1
+A="adb -s localhost:5555 shell"
+echo "battery:  $($A dumpsys battery 2>/dev/null | grep -m1 'level' | tr -d ' \r')"
+echo "storage:  $($A df /sdcard 2>/dev/null | tail -n 1 | awk '{print $4/1048576 " GB free"}')"
+pid=$($A pidof com.boredoom.chorewars 2>/dev/null | tr -d '\r')
+if [ -n "$pid" ]; then echo "game:     running (pid $pid)"; else echo "game:     not running"; fi
+echo "last log: $($A 'tail -n 1 /sdcard/Android/data/com.boredoom.chorewars/files/MQ3.log' 2>/dev/null | cut -c1-200)"

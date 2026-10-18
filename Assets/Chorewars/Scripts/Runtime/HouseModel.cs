@@ -302,7 +302,7 @@ namespace Chorewars.Runtime
         /// Only rooms that overlap along the other axis by at least half a metre are joined, and only across gaps of
         /// <paramref name="maxGapMeters"/> or less; running it again changes nothing.
         /// </summary>
-        public static bool CloseGaps(List<RoomScan> rooms, float maxGapMeters = 6f)
+        public static bool CloseGaps(List<RoomScan> rooms, float maxGapMeters = 6f, ISet<string> measuredIds = null)
         {
             if (rooms == null) return false;
 
@@ -311,6 +311,10 @@ namespace Chorewars.Runtime
             {
                 for (int j = i + 1; j < rooms.Count; j++)
                 {
+                    bool aFixed = measuredIds != null && measuredIds.Contains(rooms[i].roomId);
+                    bool bFixed = measuredIds != null && measuredIds.Contains(rooms[j].roomId);
+                    if (aFixed && bFixed) continue;   // two measured rooms are what they are
+
                     var a = rooms[i].boundsXZ;
                     var b = rooms[j].boundsXZ;
                     float overlapZ = Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin);
@@ -320,17 +324,19 @@ namespace Chorewars.Runtime
 
                     if (overlapZ >= 0.5f && gapX > 0.01f && gapX <= maxGapMeters)
                     {
-                        float half = gapX * 0.5f;
+                        float ea = aFixed ? 0f : bFixed ? gapX : gapX * 0.5f;   // a measured room never moves
+                        float eb = bFixed ? 0f : aFixed ? gapX : gapX * 0.5f;
                         bool aLeft = a.xMax < b.xMin;
-                        a = aLeft ? Rect.MinMaxRect(a.xMin, a.yMin, a.xMax + half, a.yMax) : Rect.MinMaxRect(a.xMin - half, a.yMin, a.xMax, a.yMax);
-                        b = aLeft ? Rect.MinMaxRect(b.xMin - half, b.yMin, b.xMax, b.yMax) : Rect.MinMaxRect(b.xMin, b.yMin, b.xMax + half, b.yMax);
+                        a = aLeft ? Rect.MinMaxRect(a.xMin, a.yMin, a.xMax + ea, a.yMax) : Rect.MinMaxRect(a.xMin - ea, a.yMin, a.xMax, a.yMax);
+                        b = aLeft ? Rect.MinMaxRect(b.xMin - eb, b.yMin, b.xMax, b.yMax) : Rect.MinMaxRect(b.xMin, b.yMin, b.xMax + eb, b.yMax);
                     }
                     else if (overlapX >= 0.5f && gapZ > 0.01f && gapZ <= maxGapMeters)
                     {
-                        float half = gapZ * 0.5f;
+                        float ea = aFixed ? 0f : bFixed ? gapZ : gapZ * 0.5f;
+                        float eb = bFixed ? 0f : aFixed ? gapZ : gapZ * 0.5f;
                         bool aBelow = a.yMax < b.yMin;
-                        a = aBelow ? Rect.MinMaxRect(a.xMin, a.yMin, a.xMax, a.yMax + half) : Rect.MinMaxRect(a.xMin, a.yMin - half, a.xMax, a.yMax);
-                        b = aBelow ? Rect.MinMaxRect(b.xMin, b.yMin - half, b.xMax, b.yMax) : Rect.MinMaxRect(b.xMin, b.yMin, b.xMax, b.yMax + half);
+                        a = aBelow ? Rect.MinMaxRect(a.xMin, a.yMin, a.xMax, a.yMax + ea) : Rect.MinMaxRect(a.xMin, a.yMin - ea, a.xMax, a.yMax);
+                        b = aBelow ? Rect.MinMaxRect(b.xMin, b.yMin - eb, b.xMax, b.yMax) : Rect.MinMaxRect(b.xMin, b.yMin, b.xMax, b.yMax + eb);
                     }
                     else continue;
 

@@ -253,6 +253,56 @@ namespace Chorewars.Runtime
 
         private float _nextRequestPollAt;
 
+        // Rooms whose outline was measured (looking at the ceiling corners). They are never stretched to close gaps.
+        private readonly HashSet<string> _measured = new HashSet<string>();
+
+        /// <summary>
+        /// Adds a room whose outline was measured, or replaces the rough room the player is standing in with it.
+        /// </summary>
+        public bool AdoptMeasuredRoom(string name, Rect outline, float wallHeight, Vector3 standingAt)
+        {
+            if (outline.width < 0.8f || outline.height < 0.8f) return false;
+
+            string roomId = HouseMapBuilder.FindRoomIdAt(_rooms, standingAt);
+            int index = -1;
+            if (!string.IsNullOrEmpty(roomId))
+                for (int i = 0; i < _rooms.Count; i++) if (_rooms[i].roomId == roomId) { index = i; break; }
+
+            RoomScan room;
+            if (index >= 0)
+            {
+                room = _rooms[index];
+                room.boundsXZ = outline;
+                room.wallHeight = wallHeight;
+                _rooms[index] = room;
+            }
+            else
+            {
+                roomId = HouseMapBuilder.NextRoomId(_rooms, _registered);
+                room = new RoomScan { roomId = roomId, boundsXZ = outline, floorY = 0f, wallHeight = wallHeight };
+                _rooms.Add(room);
+                _registered.Add(roomId);
+            }
+
+            _roomAnchors[room.roomId] = outline.center;
+            _measured.Add(room.roomId);
+
+            if (_presenter != null) _presenter.SetRoom(room);
+            if (_pipeline != null) _pipeline.EnsureRoom(room);
+            HideAssumedBoxes();
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                var named = HouseMapBuilder.NameFor(room.roomId, name);
+                HouseMapBuilder.ApplyName(_names, named);
+                if (_presenter != null) _presenter.SetName(room.roomId, name);
+            }
+
+            QueueSave();
+            Debug.Log($"[HouseMap] {room.roomId} measured from the ceiling: {outline.width:0.0}x{outline.height:0.0} m.");
+            return true;
+        }
+
         private void Update()
         {
             PollNameRequest();
@@ -447,7 +497,7 @@ namespace Chorewars.Runtime
             bool anyChanged = false;
 
             // Rooms named in different spots are stretched until they meet, so the plan is joined up.
-            if (HouseMapBuilder.CloseGaps(_rooms))
+            if (HouseMapBuilder.CloseGaps(_rooms, 6f, _measured))
             {
                 for (int i = 0; i < _rooms.Count; i++)
                     if (_presenter != null) _presenter.SetRoom(_rooms[i]);

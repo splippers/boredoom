@@ -162,6 +162,7 @@ namespace Chorewars.Voice
             if (_avatarDwell.Update(lookingAtHer, Time.unscaledDeltaTime))
             {
                 TelemetryLogger.Info("Voice", "looked at her for the full bar: asking her to talk");
+                if (!_mic.Listening) _mic.Begin();   // looking at her means "let's talk": make sure she can hear
                 _link.Send(VoiceLinkProtocol.Prompt, new byte[0]);
             }
             float fillW = Mathf.Max(0.0001f, _avatarDwell.Progress01 * BarWidth);

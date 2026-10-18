@@ -376,12 +376,16 @@ namespace Chorewars.Runtime
 
         private void RecomputeLinks()
         {
-            if (_rooms.Count < 2 || _headPath.Count < 2) return;
+            if (_rooms.Count < 2) return;
             if (Time.unscaledTime < _nextLinkAt) return;
 
             _nextLinkAt = Time.unscaledTime + Mathf.Max(0.25f, linkRecomputeIntervalSeconds);
 
+            // Door frames in the headset's room outline link rooms before anyone walks through them.
             var found = HouseMapBuilder.BuildLinks(_rooms, _headPath);
+            foreach (var door in SceneRoomBuilder.PublishedDoors)
+                if (HouseMapBuilder.HasRoom(_rooms, door.fromRoomId) && HouseMapBuilder.HasRoom(_rooms, door.toRoomId)
+                    && !HouseMapBuilder.RecordsDoor(found, door)) found.Add(door);
 
             // The walked path only ever grows, so a door found on it stays found; a door restored from
             // last session stays too, because this session has no walk through it to find it again.

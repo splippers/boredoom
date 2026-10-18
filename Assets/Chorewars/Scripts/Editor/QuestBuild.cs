@@ -152,6 +152,18 @@ namespace Chorewars.Build
             SwitchOn(settings.GetFeature<MetaHandTrackingAim>(), "Meta Hand Tracking Aim");
         }
 
+        /// <summary>
+        /// Switches on Meta's plane detection, which hands over the room the player outlined in Space Setup: the
+        /// floor, ceiling, walls and door frames. Without it the game cannot know where the real floor is.
+        /// </summary>
+        static void EnableScenePlanes()
+        {
+            var settings = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
+            if (settings == null) return;
+
+            SwitchOn(settings.GetFeature<ARPlaneFeature>(), "Meta Quest: Planes");
+        }
+
         static void SwitchOn(UnityEngine.XR.OpenXR.Features.OpenXRFeature feature, string name)
         {
             if (feature == null)
@@ -189,6 +201,7 @@ namespace Chorewars.Build
 
             EnableCameraImages();
             EnableHandTracking();
+            EnableScenePlanes();
 
             AssetDatabase.SaveAssets();
             Debug.Log("[BoreDOOM] Applied Quest player settings — " + Validate());

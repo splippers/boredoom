@@ -21,6 +21,7 @@ namespace Chorewars.Runtime
         public event System.Action ScanCompleted;
 
         [SerializeField] private SpatialMeshTracker spatialMeshTracker;
+        private SceneSurfaceReader _scene;
 
         [Tooltip("Roughly how long a full scan takes, used only to pace the progress bar.")]
         [SerializeField] private float assumedScanSeconds = 20f;
@@ -48,9 +49,10 @@ namespace Chorewars.Runtime
         // A live scan does not know its extent until meshes arrive.
         public Bounds? KnownBounds => null;
 
-        public void Configure(SpatialMeshTracker tracker)
+        public void Configure(SpatialMeshTracker tracker, SceneSurfaceReader scene = null)
         {
             spatialMeshTracker = tracker;
+            _scene = scene;
         }
 
         public void Begin()
@@ -90,7 +92,7 @@ namespace Chorewars.Runtime
             if (!IsScanning) return;
 
             float elapsed = Time.unscaledTime - _startedAt;
-            int meshCount = spatialMeshTracker != null ? spatialMeshTracker.MeshCount : 0;
+            int meshCount = (spatialMeshTracker != null ? spatialMeshTracker.MeshCount : 0) + (_scene != null ? _scene.SurfaceCount : 0);
 
             if (meshCount != _lastMeshCount)
             {
@@ -128,6 +130,8 @@ namespace Chorewars.Runtime
 
         private void ExtractAndEmitRooms()
         {
+            if (TryEmitSceneRooms()) return;
+
             _vertices.Clear();
             if (spatialMeshTracker != null) spatialMeshTracker.CollectWorldVertices(_vertices);
 
@@ -165,6 +169,27 @@ namespace Chorewars.Runtime
             TelemetryLogger.Info("Scan",
                 $"scan complete — {rooms.Count} room(s) from {_vertices.Count} captured vertices.");
             Debug.Log($"[QuestScanSource] Scan complete — {rooms.Count} room(s) from {_vertices.Count} captured vertices.");
+        }
+
+        /// <summary>
+        /// Rooms from the outline the player made in the headset's Space Setup: measured, so preferred over a
+        /// mesh guess. Each floor is a room, and door frames between rooms link them.
+        /// </summary>
+        private bool TryEmitSceneRooms()
+        {
+            if (_scene == null) return false;
+
+            var surfaces = new List<SceneSurface>();
+            _scene.ReadSurfaces(surfaces);
+            var scene = SceneRoomBuilder.Build(surfaces);
+            if (scene.rooms.Count == 0) return false;
+
+            SceneRoomBuilder.Publish(scene.doors);
+            foreach (var room in scene.rooms) RoomScanned?.Invoke(room);
+
+            TelemetryLogger.Info("Scan",
+                $"scan complete — {scene.rooms.Count} room(s) and {scene.doors.Count} doorway(s) from the headset's room outline.");
+            return true;
         }
 
         /// <summary>

@@ -51,6 +51,15 @@ namespace Chorewars.Voice
         GameObject _listeningDot;
 
         readonly GazePanelPlacement _placement = new GazePanelPlacement();
+
+        // The floating head sits on the left; the panel is on the right. She turns to face the player.
+        const float AvatarYawOffsetDegrees = -34f;
+        const float AvatarDistance = 1.25f;
+        const float AvatarScale = 1.5f;
+        readonly GazePanelPlacement _avatarPlacement = new GazePanelPlacement();
+        Transform _avatarAnchor;
+        VoiceAvatar _avatar;
+        readonly float[] _outputSamples = new float[256];
         readonly DwellButtonLogic _repeatDwell = new DwellButtonLogic();
         readonly DwellButtonLogic _talkDwell = new DwellButtonLogic();
         float _lastLineAt = -1000f;
@@ -81,6 +90,13 @@ namespace Chorewars.Voice
 
             Build();
             _root.gameObject.SetActive(false);
+
+            _avatarAnchor = new GameObject("VoiceAvatarAnchor").transform;
+            _avatarAnchor.SetParent(transform, false);
+            _avatar = new VoiceAvatar(_avatarAnchor);
+            _avatar.Root.localScale = Vector3.one * AvatarScale;
+            _avatarAnchor.gameObject.SetActive(false);
+            _avatarPlacement.Anchored = true;
         }
 
         void Update()
@@ -108,7 +124,8 @@ namespace Chorewars.Voice
             {
                 _wasVisible = visible;
                 _root.gameObject.SetActive(visible);
-                if (visible) _placement.Release();
+                _avatarAnchor.gameObject.SetActive(visible);
+                if (visible) { _placement.Release(); _avatarPlacement.Release(); }
             }
             if (!visible) return;
 
@@ -117,6 +134,18 @@ namespace Chorewars.Voice
             var head = camera.transform;
 
             _placement.Hold(_root, head, Distance, HeightOffset, float.NegativeInfinity, 0f, YawOffsetDegrees);
+
+            _avatarPlacement.Hold(_avatarAnchor, head, AvatarDistance, HeightOffset + 0.02f, float.NegativeInfinity, 0f, AvatarYawOffsetDegrees);
+            _avatarAnchor.rotation = Quaternion.LookRotation(_avatarAnchor.position - head.position, Vector3.up) * Quaternion.Euler(0, 180f, 0);
+            float voice = 0f;
+            if (_audio.isPlaying)
+            {
+                _audio.GetOutputData(_outputSamples, 0);
+                float sum = 0f;
+                for (int i = 0; i < _outputSamples.Length; i++) sum += _outputSamples[i] * _outputSamples[i];
+                voice = Mathf.Sqrt(sum / _outputSamples.Length);
+            }
+            _avatar.Tick(Time.unscaledDeltaTime, voice, _mic.Hearing, _claude.Busy);
 
             _status.text = connected ? "PC link: connected" : "PC link: waiting...";
 

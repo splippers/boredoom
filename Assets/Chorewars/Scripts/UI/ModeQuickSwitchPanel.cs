@@ -68,7 +68,7 @@ namespace Chorewars.UI
         }
 
         private float _nextRuntimeCheckAt;
-        private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement();
+        private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement { Anchored = true };
 
         private IEnumerator CoBuildWorldUi()
         {

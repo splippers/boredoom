@@ -173,6 +173,9 @@ namespace Chorewars.Runtime
             var bounds = scannedBounds ?? provider.RoomBounds;
             var source = scannedBounds != null ? "Scan" : provider.Source;
 
+            // Free roaming: on the headset the player walks the whole house, so there must be no edge to reach.
+            if (!Application.isEditor) bounds = RoamingPlayArea.EnsureRoaming(bounds);
+
             // A scan that has not run cannot know the room, and on device that is the normal case:
             // the play area starts as the room provider's guess and is replaced by the real extent
             // once the scan finishes (see OnScanAreaResolved).
@@ -193,7 +196,7 @@ namespace Chorewars.Runtime
             room.Build(bounds);
 
             var floorVisualizer = roomGo.AddComponent<CoverageFloorVisualizer>();
-            floorVisualizer.Build(bounds, room.FloorRenderer);
+            floorVisualizer.Build(bounds, room.FloorRenderer, RoamingPlayArea.FloorResolution(bounds));
 
             // 4) The tracked tool (placeholder "vacuum").
             var tool = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -362,6 +365,7 @@ namespace Chorewars.Runtime
         private void OnScanAreaResolved(Bounds scanned)
         {
             if (!_playAreaFromGuess || _playAreaResolved) return;
+            if (!Application.isEditor) scanned = RoamingPlayArea.EnsureRoaming(scanned);
             if (_mode == null || !_mode.TryUpdatePlayBounds(scanned)) return;
 
             _playAreaResolved = true;
@@ -372,7 +376,7 @@ namespace Chorewars.Runtime
                 new Vector2(scanned.max.x, scanned.max.z));
 
             _room.Build(scanned);
-            _floorVisualizer.Build(scanned, _room.FloorRenderer);
+            _floorVisualizer.Build(scanned, _room.FloorRenderer, RoamingPlayArea.FloorResolution(scanned));
 
             // Rebuilding the visualiser replaced its texture, so the bake has to be pointed at the
             // new one and at the new floor height.

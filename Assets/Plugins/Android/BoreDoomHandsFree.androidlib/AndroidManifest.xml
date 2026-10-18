@@ -8,4 +8,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Passthrough camera access, asked for only when the camera probe is requested (see CameraFrameProbe). -->
     <uses-permission android:name="horizonos.permission.HEADSET_CAMERA" />
+    <!-- Free roaming: ask the headset not to enforce its play-area boundary. Meta's flag for passthrough-only apps run from a
+         standalone APK; the whole experience is boundaryless, so the game itself must stay safe to walk around in. -->
+    <uses-feature android:name="com.oculus.feature.BOUNDARYLESS_APP" android:required="true" />
 </manifest>

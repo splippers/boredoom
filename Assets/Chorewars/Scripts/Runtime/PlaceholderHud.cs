@@ -101,7 +101,8 @@ namespace Chorewars.Runtime
 
         private bool _placed;
         private int _lastSelectableKind;
-        private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement();
+        // Anchored: a menu stays where it opened so the player can roam; "bring the menu" recalls it.
+        private readonly Chorewars.HandsFree.GazePanelPlacement _gazePlacement = new Chorewars.HandsFree.GazePanelPlacement { Anchored = true };
 
         public void Build(Camera camera)
         {

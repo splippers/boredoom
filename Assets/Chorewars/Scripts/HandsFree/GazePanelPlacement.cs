@@ -26,6 +26,14 @@ namespace Chorewars.HandsFree
         /// <summary>Gap kept between a panel's lower edge and the floor, in metres.</summary>
         public float FloorClearance = 0.12f;
 
+        /// <summary>
+        /// A world-anchored panel stays where it was opened, however far the player walks or however they turn,
+        /// so they can roam the house and come back to it. Until <see cref="WorldAnchoredPanels.Recall"/> is called,
+        /// it is never pulled back in front of them.
+        /// </summary>
+        public bool Anchored;
+
+        int _seenRecall;
         bool _held;
         Vector3 _position;
         Quaternion _rotation;
@@ -44,12 +52,21 @@ namespace Chorewars.HandsFree
         {
             if (panel == null || head == null) return;
 
+            if (Anchored && _seenRecall != WorldAnchoredPanels.RecallCount)
+            {
+                _seenRecall = WorldAnchoredPanels.RecallCount;
+                _held = false; // recalled: place it afresh in front of the player
+            }
+
             if (_held)
             {
+                float distanceLimit = Anchored ? float.PositiveInfinity : RecenterDistance;
+                float angleLimit = Anchored ? 360f : RecenterAngle;
+
                 var toPanel = _position - head.position;
                 if (toPanel.sqrMagnitude < 1e-4f
-                    || toPanel.magnitude > RecenterDistance
-                    || Vector3.Angle(head.forward, toPanel) > RecenterAngle)
+                    || toPanel.magnitude > distanceLimit
+                    || Vector3.Angle(head.forward, toPanel) > angleLimit)
                     _held = false;
             }
 

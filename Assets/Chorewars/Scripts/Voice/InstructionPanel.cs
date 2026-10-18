@@ -7,12 +7,12 @@ namespace Chorewars.Voice
 {
     /// <summary>
     /// The panel Claude uses to tell the player what to do: the words on screen, spoken aloud, a
-    /// "repeat" button, and a "talk" button to reply.
+    /// "repeat" button, and a "mute" button: the microphone is open for his replies.
     /// </summary>
     /// <remarks>
     /// Everything is hands-free: the two buttons are pressed by looking at them for a moment. The
     /// instruction is spoken once when it arrives; "Repeat" speaks it once more, and never loops.
-    /// The microphone is open only while the red "LISTENING" dot is showing.
+    /// The microphone is open whenever the red "LISTENING" dot is showing, and the Mute button closes it.
     ///
     /// Built from plain quads and TextMesh so it needs no scene, prefab or canvas, and it exists only on
     /// a device where the PC's voice server is reachable: it does nothing until a line arrives.
@@ -20,20 +20,31 @@ namespace Chorewars.Voice
     public sealed class InstructionPanel : MonoBehaviour
     {
         const float Distance = 1.4f;
-        const float HeightOffset = -0.05f;
+        // To the right of where the player faces, not in front: the game's own panels (score, room scan, chore menu)
+        // are centred in front of them, and this panel is 36 degrees wide, so 40 degrees of turn leaves a clear gap.
+        const float HeightOffset = 0.05f;
+        const float YawOffsetDegrees = 40f;
         const int WrapWidth = 30;
-        const int MaxLines = 6;
-        const float VisibleSeconds = 150f;
+        const int MaxLines = 5;
         const float ButtonAngle = 5.5f;
 
         VoiceLinkClient _link;
         MicStreamer _mic;
         AudioSource _audio;
         AudioClip _lastClip;
+        readonly System.Collections.Generic.Queue<AudioClip> _toPlay = new System.Collections.Generic.Queue<AudioClip>();
 
         Transform _root;
         TextMesh _body;
         TextMesh _status;
+        TextMesh _thinking;
+        const int BarCount = 48;
+        const float BarMaxHeight = 0.075f; // inside WaveBars: 0.005 below, 0.005 above
+        Transform[] _bars;
+        Material[] _barMaterials;
+        int _barState = -1;
+        ClaudeStatus _claude;
+        float _claudeSince;
         TextMesh _talkLabel;
         Transform _repeatFill, _talkFill;
         Transform _repeatButton, _talkButton;
@@ -45,6 +56,7 @@ namespace Chorewars.Voice
         float _lastLineAt = -1000f;
         bool _wasVisible;
         bool _wasConnected;
+        bool _micStarted;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
@@ -80,9 +92,18 @@ namespace Chorewars.Voice
                 TelemetryLogger.Info("Voice", connected ? "link to the PC is up" : "link to the PC is down");
             }
 
+            // Open mic by default, as Jon asked: the first time the link is up, listen. Muting is his to do.
+            if (connected && !_micStarted)
+            {
+                _micStarted = true;
+                _mic.Begin();
+            }
+
             while (_link.TryDequeue(out var frame)) Handle(frame);
 
-            bool visible = _mic.Recording || Time.unscaledTime - _lastLineAt < VisibleSeconds;
+            // Up for as long as the link to the PC is: a panel that hides itself takes the Talk button with it,
+            // and then the player cannot answer. It is small and held still, so leaving it up costs little.
+            bool visible = connected || _mic.Listening;
             if (visible != _wasVisible)
             {
                 _wasVisible = visible;
@@ -95,25 +116,38 @@ namespace Chorewars.Voice
             if (camera == null) return;
             var head = camera.transform;
 
-            _placement.Hold(_root, head, Distance, HeightOffset);
+            _placement.Hold(_root, head, Distance, HeightOffset, float.NegativeInfinity, 0f, YawOffsetDegrees);
 
             _status.text = connected ? "PC link: connected" : "PC link: waiting...";
-            _listeningDot.SetActive(_mic.Recording);
-            _talkLabel.text = _mic.Recording ? "STOP" : "TALK";
+
+            // A busy Claude with nothing said for two minutes is more likely a lost message than real work.
+            if (_claude.Busy && Time.unscaledTime - _claudeSince > 120f) _claude = default;
+            _thinking.text = _claude.Describe(1 + (int)(Time.unscaledTime * 2f) % 3);
+            DrawWaveform();
+            _listeningDot.SetActive(_mic.Listening);
+            _talkLabel.text = _mic.Listening ? "MUTE" : "UNMUTE";
+            PlayNext();
+            _mic.Suppressed = _audio.isPlaying || _toPlay.Count > 0; // never record our own voice
 
             float dt = Time.unscaledDeltaTime;
 
             if (_repeatDwell.Update(IsLooking(head, _repeatButton), dt)) Repeat();
-            if (_talkDwell.Update(IsLooking(head, _talkButton), dt)) ToggleTalk();
+            if (_talkDwell.Update(IsLooking(head, _talkButton), dt)) ToggleMute();
 
-            SetFill(_repeatFill, _repeatDwell.Progress01);
-            SetFill(_talkFill, _talkDwell.Progress01);
+            SetFill(_repeatFill, PanelLayout.RepeatProgress, _repeatDwell.Progress01);
+            SetFill(_talkFill, PanelLayout.TalkProgress, _talkDwell.Progress01);
         }
 
         void Handle(VoiceFrame frame)
         {
-            if (frame.kind == VoiceLinkProtocol.Text)
+            if (frame.kind == VoiceLinkProtocol.Status)
             {
+                _claude = ClaudeStatus.Parse(System.Text.Encoding.UTF8.GetString(frame.payload));
+                _claudeSince = Time.unscaledTime;
+            }
+            else if (frame.kind == VoiceLinkProtocol.Text)
+            {
+                _claude = default; // the answer has arrived
                 var text = System.Text.Encoding.UTF8.GetString(frame.payload);
                 var lines = TextWrap.Lines(text, WrapWidth, MaxLines);
                 _body.text = string.Join("\n", lines);
@@ -128,6 +162,7 @@ namespace Chorewars.Voice
                     return;
                 }
 
+                _claude = default;
                 _lastClip = AudioClip.Create("instruction", samples.Length / channels, channels, rate, false);
                 _lastClip.SetData(samples, 0);
                 _lastLineAt = Time.unscaledTime;
@@ -139,8 +174,15 @@ namespace Chorewars.Voice
         {
             if (_lastClip == null) return;
 
-            _audio.Stop();
-            _audio.clip = _lastClip;
+            // Queued, never cut in on: two things to say are said one after the other.
+            _toPlay.Enqueue(_lastClip);
+        }
+
+        void PlayNext()
+        {
+            if (_audio.isPlaying || _toPlay.Count == 0) return;
+
+            _audio.clip = _toPlay.Dequeue();
             _audio.loop = false;
             _audio.Play();
         }
@@ -151,16 +193,38 @@ namespace Chorewars.Voice
             Speak();
         }
 
-        void ToggleTalk()
+        void ToggleMute()
         {
-            if (_mic.Recording)
+            if (_mic.Listening) _mic.Stop("you looked at mute");
+            else _mic.Begin();
+        }
+
+        /// <summary>
+        /// The scrolling waveform: 0 = oldest on the left, newest on the right. Green while a sentence is being
+        /// sent, blue while the mic is open and quiet, grey while muted, so the strip shows the mic's true state.
+        /// </summary>
+        void DrawWaveform()
+        {
+            int state = !_mic.Listening ? 0 : _mic.Hearing ? 2 : 1;
+            if (state != _barState)
             {
-                _mic.Stop("you looked at stop");
-                return;
+                _barState = state;
+                var colour = state == 2 ? new Color(0.3f, 1f, 0.45f)
+                           : state == 1 ? new Color(0.35f, 0.65f, 1f)
+                           : new Color(0.35f, 0.35f, 0.38f);
+                for (int i = 0; i < BarCount; i++) _barMaterials[i].color = colour;
             }
 
-            if (_audio.isPlaying) _audio.Stop(); // do not record the instruction itself
-            _mic.Begin();
+            for (int i = 0; i < BarCount; i++)
+            {
+                float h = Mathf.Max(0.004f, _mic.Levels.Height(i) * BarMaxHeight); // never vanishes: a flat line still shows the strip
+                var scale = _bars[i].localScale;
+                scale.y = h;
+                _bars[i].localScale = scale;
+                var position = _bars[i].localPosition;
+                position.y = PanelLayout.WaveBars.yMin + 0.005f + h * 0.5f;
+                _bars[i].localPosition = position;
+            }
         }
 
         static bool IsLooking(Transform head, Transform target)
@@ -169,13 +233,14 @@ namespace Chorewars.Voice
             return direction.sqrMagnitude > 1e-6f && Vector3.Angle(head.forward, direction) < ButtonAngle;
         }
 
-        static void SetFill(Transform fill, float progress01)
+        static void SetFill(Transform fill, Rect row, float progress01)
         {
+            float width = Mathf.Max(0.0001f, progress01) * row.width;
             var scale = fill.localScale;
-            scale.x = Mathf.Max(0.0001f, progress01) * 0.34f;
+            scale.x = width;
             fill.localScale = scale;
             var position = fill.localPosition;
-            position.x = -0.17f + scale.x * 0.5f;
+            position.x = row.xMin + width * 0.5f;
             fill.localPosition = position;
         }
 
@@ -186,35 +251,76 @@ namespace Chorewars.Voice
             _root = new GameObject("InstructionPanelRoot").transform;
             _root.SetParent(transform, false);
 
-            Quad("Background", _root, new Vector3(0f, -0.04f, 0.02f), new Vector2(0.92f, 0.56f), new Color(0.05f, 0.07f, 0.10f));
+            // Behind everything by two centimetres; nothing else shares a depth with anything it touches.
+            Place(Quad("Background", _root, Vector3.zero, Vector2.one, new Color(0.05f, 0.07f, 0.10f)), PanelLayout.Background, 0.02f);
 
-            _body = Label("Instruction", _root, new Vector3(-0.42f, 0.22f, 0f), 64, 0.0055f, TextAnchor.UpperLeft, Color.white);
-            _status = Label("Status", _root, new Vector3(-0.42f, -0.29f, 0f), 64, 0.0028f, TextAnchor.LowerLeft, new Color(0.6f, 0.7f, 0.8f));
+            _body = Label("Instruction", _root, TopLeftOf(PanelLayout.Body), 64, 0.0055f, TextAnchor.UpperLeft, Color.white);
+            _body.text = "Waiting for Claude...";
+            _thinking = Label("Thinking", _root, LeftOf(PanelLayout.Thinking), 64, 0.0033f, TextAnchor.MiddleLeft, new Color(1f, 0.85f, 0.3f));
+            _status = Label("Status", _root, LeftOf(PanelLayout.Status), 64, 0.0028f, TextAnchor.MiddleLeft, new Color(0.6f, 0.7f, 0.8f));
             _status.text = "PC link: waiting...";
 
-            _repeatButton = Button("Repeat", new Vector3(-0.2f, -0.17f, 0f), "REPEAT", new Color(0.12f, 0.35f, 0.55f), out _repeatFill, out _);
-            _talkButton = Button("Talk", new Vector3(0.2f, -0.17f, 0f), "TALK", new Color(0.12f, 0.45f, 0.25f), out _talkFill, out _talkLabel);
+            BuildWaveform();
+
+            _repeatButton = Button("Repeat", PanelLayout.RepeatButton, PanelLayout.RepeatProgress, "REPEAT",
+                                   new Color(0.12f, 0.35f, 0.55f), out _repeatFill, out _);
+            _talkButton = Button("Talk", PanelLayout.TalkButton, PanelLayout.TalkProgress, "MUTE",
+                                 new Color(0.12f, 0.45f, 0.25f), out _talkFill, out _talkLabel);
 
             _listeningDot = new GameObject("ListeningDot");
             _listeningDot.transform.SetParent(_root, false);
-            Quad("Dot", _listeningDot.transform, new Vector3(0.30f, 0.23f, 0f), new Vector2(0.05f, 0.05f), new Color(1f, 0.1f, 0.1f));
-            var listening = Label("ListeningText", _listeningDot.transform, new Vector3(0.34f, 0.23f, 0f), 64, 0.0035f, TextAnchor.MiddleLeft, new Color(1f, 0.35f, 0.35f));
+            Place(Quad("Dot", _listeningDot.transform, Vector3.zero, Vector2.one, new Color(1f, 0.1f, 0.1f)), PanelLayout.HeaderDot, 0f);
+            var listening = Label("ListeningText", _listeningDot.transform, LeftOf(PanelLayout.HeaderText), 64, 0.0035f, TextAnchor.MiddleLeft, new Color(1f, 0.35f, 0.35f));
             listening.text = "LISTENING";
             _listeningDot.SetActive(false);
         }
 
-        Transform Button(string name, Vector3 position, string label, Color colour, out Transform fill, out TextMesh text)
+        static Vector3 LeftOf(Rect r) => new Vector3(r.xMin, r.center.y, 0f);
+        static Vector3 TopLeftOf(Rect r) => new Vector3(r.xMin, r.yMax, 0f);
+
+        /// <summary>Puts a unit quad exactly over a layout region, at depth <paramref name="z"/>.</summary>
+        static void Place(GameObject quad, Rect region, float z)
+        {
+            quad.transform.localPosition = new Vector3(region.center.x, region.center.y, z);
+            quad.transform.localScale = new Vector3(region.width, region.height, 1f);
+        }
+
+        void BuildWaveform()
+        {
+            _bars = new Transform[BarCount];
+            _barMaterials = new Material[BarCount];
+
+            var area = PanelLayout.WaveBars;
+            float pitch = area.width / BarCount;
+            for (int i = 0; i < BarCount; i++)
+            {
+                var bar = Quad("Bar" + i, _root, new Vector3(area.xMin + pitch * (i + 0.5f), area.yMin, 0f),
+                               new Vector2(pitch * 0.7f, 0.004f), new Color(0.35f, 0.35f, 0.38f));
+                _bars[i] = bar.transform;
+                _barMaterials[i] = bar.GetComponent<MeshRenderer>().sharedMaterial;
+            }
+
+            // A small tick in its own column, level with the loudness at which speech starts to count.
+            // Beside the bars rather than across them, so no line is drawn through a bar.
+            var marker = PanelLayout.WaveMarker;
+            float tickY = area.yMin + 0.005f + LevelHistory.ToHeight(0.02f) * BarMaxHeight;
+            Quad("SpeechTick", _root, new Vector3(marker.center.x, tickY, 0f), new Vector2(marker.width, 0.003f), Color.white);
+        }
+
+        Transform Button(string name, Rect face, Rect progress, string label, Color colour, out Transform fill, out TextMesh text)
         {
             var button = new GameObject(name).transform;
             button.SetParent(_root, false);
-            button.localPosition = position;
+            button.localPosition = new Vector3(face.center.x, face.center.y, 0f);
 
-            Quad("Face", button, Vector3.zero, new Vector2(0.36f, 0.12f), colour);
-            Quad("Track", button, new Vector3(0f, -0.045f, -0.002f), new Vector2(0.34f, 0.012f), new Color(0.2f, 0.2f, 0.2f));
-            fill = Quad("Fill", button, new Vector3(-0.17f, -0.045f, -0.004f), new Vector2(1f, 0.012f), Color.white).transform;
-            text = Label("Label", button, new Vector3(0f, 0.012f, -0.006f), 64, 0.0055f, TextAnchor.MiddleCenter, Color.white);
+            // The face fills its region; the button's word floats a centimetre in front so the two never fight.
+            Quad("Face", button, Vector3.zero, new Vector2(face.width, face.height), colour);
+            text = Label("Label", button, new Vector3(0f, 0f, -0.01f), 64, 0.0055f, TextAnchor.MiddleCenter, Color.white);
             text.text = label;
-            SetFill(fill, 0f);
+
+            // The progress bar is its own strip under the button: nothing sits beneath it.
+            fill = Quad("Fill", _root, new Vector3(progress.xMin, progress.center.y, 0f), new Vector2(0.0001f, progress.height), Color.white).transform;
+            SetFill(fill, progress, 0f);
             return button;
         }
 

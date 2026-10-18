@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features.Meta;
+using UnityEngine.XR.Hands.OpenXR;
 
 namespace Chorewars.Build
 {
@@ -137,6 +138,35 @@ namespace Chorewars.Build
             EditorUtility.SetDirty(feature);
         }
 
+        /// <summary>
+        /// Switches on OpenXR hand tracking (and Meta's aim pose) so the game can see the player's hands. Without
+        /// the features the headset reports no hand devices at all. They live in a generated settings asset that
+        /// is not committed, so the build sets them.
+        /// </summary>
+        static void EnableHandTracking()
+        {
+            var settings = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
+            if (settings == null) return;
+
+            SwitchOn(settings.GetFeature<HandTracking>(), "Hand Tracking Subsystem");
+            SwitchOn(settings.GetFeature<MetaHandTrackingAim>(), "Meta Hand Tracking Aim");
+        }
+
+        static void SwitchOn(UnityEngine.XR.OpenXR.Features.OpenXRFeature feature, string name)
+        {
+            if (feature == null)
+            {
+                Debug.LogWarning("[BoreDOOM] OpenXR feature not found: " + name);
+                return;
+            }
+
+            if (feature.enabled) return;
+
+            feature.enabled = true;
+            EditorUtility.SetDirty(feature);
+            Debug.Log("[BoreDOOM] Enabled OpenXR feature: " + name);
+        }
+
         public static void ApplyQuestPlayerSettings()
         {
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, AndroidApplicationId);
@@ -158,6 +188,7 @@ namespace Chorewars.Build
             PlayerSettings.colorSpace = ColorSpace.Linear;
 
             EnableCameraImages();
+            EnableHandTracking();
 
             AssetDatabase.SaveAssets();
             Debug.Log("[BoreDOOM] Applied Quest player settings — " + Validate());

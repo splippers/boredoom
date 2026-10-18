@@ -29,6 +29,9 @@ namespace Chorewars.Voice
         /// <summary>PC to headset: a UTF-8 caption to show alongside the speech.</summary>
         public const byte Text = 0x11;
 
+        /// <summary>PC to headset: what Claude is doing right now (see <see cref="ClaudeStatus"/>).</summary>
+        public const byte Status = 0x12;
+
         public const int HeaderBytes = 5;
 
         /// <summary>
@@ -52,6 +55,7 @@ namespace Chorewars.Voice
                 case End: return "END";
                 case Wav: return "WAV";
                 case Text: return "TEXT";
+                case Status: return "STATUS";
                 default: return $"0x{kind:X2}";
             }
         }

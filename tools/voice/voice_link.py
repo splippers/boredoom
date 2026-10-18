@@ -10,6 +10,7 @@ Wire format, both directions: 1 byte type, 4 bytes big-endian length, then the p
                   0x02 END    the player stopped talking; transcribe what was sent since the last END
   PC -> headset   0x10 WAV    a complete .wav file to play (Claude's spoken reply)
                   0x11 TEXT   UTF-8 caption to show with it
+                  0x12 STATUS what Claude is doing: transcribing | thinking<TAB>what-you-said | working<TAB>job | idle
 
 What was heard is appended, one JSON object per line, to INBOX (default ~/.local/share/boredoom-voice/inbox.jsonl)
 and printed to stdout, so a watcher can wake Claude on each line.
@@ -30,7 +31,7 @@ import threading
 import time
 import wave
 
-AUDIO, END, WAV, TEXT = 0x01, 0x02, 0x10, 0x11
+AUDIO, END, WAV, TEXT, STATUS = 0x01, 0x02, 0x10, 0x11, 0x12
 RATE = 16000
 STATE_DIR = os.path.expanduser("~/.local/share/boredoom-voice")
 MAX_UTTERANCE_SECONDS = 60
@@ -60,8 +61,20 @@ def pcm_to_float(pcm):
     return np.frombuffer(pcm, dtype="<i2").astype("float32") / 32768.0
 
 
+VOICE_MODEL = os.environ.get("BOREDOOM_VOICE_MODEL", os.path.join(STATE_DIR, "voices", "en_GB-alba-medium.onnx"))
+
+
 def speak_to_wav(text, path):
-    """espeak-ng, slightly slow and low: clear in a headset and not mistaken for a person."""
+    """Piper (a natural offline voice) if its model is installed; otherwise espeak-ng, which is robotic but always there.
+
+    Point BOREDOOM_VOICE_MODEL at any Piper .onnx voice to change who speaks."""
+    if os.path.exists(VOICE_MODEL):
+        try:
+            subprocess.run([sys.executable, "-m", "piper", "-m", VOICE_MODEL, "-f", path],
+                           input=text.encode("utf-8"), check=True, timeout=60, capture_output=True)
+            return
+        except (subprocess.SubprocessError, OSError):
+            pass  # fall through to the plain voice rather than saying nothing
     subprocess.run(["espeak-ng", "-s", "150", "-p", "40", "-w", path, text], check=True, timeout=30)
 
 
@@ -89,17 +102,30 @@ def serve_client(conn, hearing, inbox, outbox_dir):
     outgoing = queue.Queue()
     alive = threading.Event()
     alive.set()
+    send_lock = threading.Lock()  # frames come from three threads; two must never interleave on the socket
+
+    def send(kind, payload):
+        with send_lock:
+            send_frame(conn, kind, payload)
+
+    def status(text):
+        try:
+            send(STATUS, text.encode("utf-8"))
+        except OSError:
+            pass
 
     def pump_outbox():
         while alive.is_set():
             for name in sorted(os.listdir(outbox_dir)):
-                if not name.endswith(".txt"):
+                if not name.endswith((".txt", ".status")):
                     continue
                 path = os.path.join(outbox_dir, name)
                 try:
                     text = open(path, encoding="utf-8").read().strip()
                     os.remove(path)
-                    if text:
+                    if name.endswith(".status"):
+                        status(text)  # shown at once, never spoken
+                    elif text:
                         outgoing.put(text)
                 except OSError:
                     pass
@@ -115,8 +141,8 @@ def serve_client(conn, hearing, inbox, outbox_dir):
                 speak_to_wav(text, tmp.name)
                 data = open(tmp.name, "rb").read()
             try:
-                send_frame(conn, TEXT, text.encode("utf-8"))
-                send_frame(conn, WAV, data)
+                send(TEXT, text.encode("utf-8"))
+                send(WAV, data)
                 log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "spoke", "text": text})
             except OSError:
                 return
@@ -131,10 +157,15 @@ def serve_client(conn, hearing, inbox, outbox_dir):
                 if len(pcm) < RATE * 2 * MAX_UTTERANCE_SECONDS:
                     pcm += payload
             elif kind == END:
+                if len(pcm) >= RATE * 2 // 4:
+                    status("transcribing")
                 text = hearing.transcribe(bytes(pcm))
                 pcm.clear()
                 if text:
+                    status("thinking\t" + text)  # before the transcript reaches Claude, so the player sees it was heard
                     log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "heard", "text": text})
+                else:
+                    status("idle")
     except ConnectionError:
         pass
     finally:

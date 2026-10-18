@@ -249,7 +249,8 @@ namespace Chorewars.Runtime
             dollhouseGo.transform.SetParent(root, false);
             var dollhouse = dollhouseGo.AddComponent<DollhouseManager>();
             dollhouse.ConfigureMaterials(
-                PlaceholderMaterials.CreateOpaque(new Color(0.33f, 0.31f, 0.29f)),
+                // A sandy brown that reads against a dark room (the old dark grey vanished); it turns green as the room is cleaned.
+                PlaceholderMaterials.CreateOpaque(new Color(0.66f, 0.52f, 0.32f)),
                 PlaceholderMaterials.CreateOpaque(new Color(0.30f, 0.85f, 0.45f)));
 
             var pipeline = dollhouseGo.AddComponent<ScanToDollhousePipeline>();

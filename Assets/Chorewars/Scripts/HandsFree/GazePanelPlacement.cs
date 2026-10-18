@@ -38,8 +38,9 @@ namespace Chorewars.HandsFree
 
         /// <param name="floorY">World height of the floor. The panel is lifted if its lower edge would dip below it.</param>
         /// <param name="belowCentre">How far the panel's lower edge hangs below the point it is positioned by.</param>
+        /// <param name="yawOffsetDegrees">Turns the panel's spot to the right of where the player is facing (negative: left). Lets two panels sit side by side instead of on top of each other.</param>
         public void Hold(Transform panel, Transform head, float distance, float heightOffset,
-                         float floorY = float.NegativeInfinity, float belowCentre = 0f)
+                         float floorY = float.NegativeInfinity, float belowCentre = 0f, float yawOffsetDegrees = 0f)
         {
             if (panel == null || head == null) return;
 
@@ -58,6 +59,7 @@ namespace Chorewars.HandsFree
                 var flat = Vector3.ProjectOnPlane(head.forward, Vector3.up);
                 if (flat.sqrMagnitude < 1e-4f) flat = Vector3.ProjectOnPlane(head.up, Vector3.up);
                 flat.Normalize();
+                if (yawOffsetDegrees != 0f) flat = Quaternion.AngleAxis(yawOffsetDegrees, Vector3.up) * flat;
 
                 _position = head.position + flat * distance + Vector3.up * heightOffset;
 

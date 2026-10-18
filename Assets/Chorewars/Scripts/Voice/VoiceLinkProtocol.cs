@@ -23,6 +23,9 @@ namespace Chorewars.Voice
         /// <summary>Headset to PC: the player stopped talking. Transcribe everything since the last one.</summary>
         public const byte End = 0x02;
 
+        /// <summary>Headset to PC: the player looked at the lady long enough to ask her to talk. No payload needed.</summary>
+        public const byte Prompt = 0x03;
+
         /// <summary>PC to headset: a complete .wav file to play.</summary>
         public const byte Wav = 0x10;
 
@@ -53,6 +56,7 @@ namespace Chorewars.Voice
             {
                 case Audio: return "AUDIO";
                 case End: return "END";
+                case Prompt: return "PROMPT";
                 case Wav: return "WAV";
                 case Text: return "TEXT";
                 case Status: return "STATUS";

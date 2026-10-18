@@ -8,6 +8,7 @@ Wire format, both directions: 1 byte type, 4 bytes big-endian length, then the p
 
   headset -> PC   0x01 AUDIO  raw PCM, signed 16-bit little-endian, 16000 Hz, mono (any chunk size)
                   0x02 END    the player stopped talking; transcribe what was sent since the last END
+                  0x03 PROMPT the player looked at the lady long enough to ask her to talk; logged as a "prompt" event
   PC -> headset   0x10 WAV    a complete .wav file to play (Claude's spoken reply)
                   0x11 TEXT   UTF-8 caption to show with it
                   0x12 STATUS what Claude is doing: transcribing | thinking<TAB>what-you-said | working<TAB>job | idle
@@ -31,7 +32,7 @@ import threading
 import time
 import wave
 
-AUDIO, END, WAV, TEXT, STATUS = 0x01, 0x02, 0x10, 0x11, 0x12
+AUDIO, END, PROMPT, WAV, TEXT, STATUS = 0x01, 0x02, 0x03, 0x10, 0x11, 0x12
 RATE = 16000
 STATE_DIR = os.path.expanduser("~/.local/share/boredoom-voice")
 MAX_UTTERANCE_SECONDS = 60
@@ -156,6 +157,9 @@ def serve_client(conn, hearing, inbox, outbox_dir):
             if kind == AUDIO:
                 if len(pcm) < RATE * 2 * MAX_UTTERANCE_SECONDS:
                     pcm += payload
+            elif kind == PROMPT:
+                status("thinking\tYou looked at me")
+                log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "prompt", "text": "Jon looked at you and wants you to talk"})
             elif kind == END:
                 if len(pcm) >= RATE * 2 // 4:
                     status("transcribing")

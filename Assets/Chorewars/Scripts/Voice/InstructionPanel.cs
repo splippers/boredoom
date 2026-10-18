@@ -59,6 +59,11 @@ namespace Chorewars.Voice
         readonly GazePanelPlacement _avatarPlacement = new GazePanelPlacement();
         Transform _avatarAnchor;
         VoiceAvatar _avatar;
+        const float AvatarDwellSeconds = 10f;
+        const float AvatarLookAngle = 9f;
+        const float BarWidth = 0.34f;
+        readonly DwellButtonLogic _avatarDwell = new DwellButtonLogic { Seconds = AvatarDwellSeconds, DrainSeconds = 1.5f };
+        Transform _avatarFill;
         readonly float[] _outputSamples = new float[256];
         readonly DwellButtonLogic _repeatDwell = new DwellButtonLogic();
         readonly DwellButtonLogic _talkDwell = new DwellButtonLogic();
@@ -95,8 +100,16 @@ namespace Chorewars.Voice
             _avatarAnchor.SetParent(transform, false);
             _avatar = new VoiceAvatar(_avatarAnchor);
             _avatar.Root.localScale = Vector3.one * AvatarScale;
-            _avatarAnchor.gameObject.SetActive(false);
             _avatarPlacement.Anchored = true;
+
+            // The bar under her face: turned half round because the anchor's +Z points at the player.
+            var barRoot = new GameObject("AvatarBar").transform;
+            barRoot.SetParent(_avatarAnchor, false);
+            barRoot.localPosition = new Vector3(0, -0.3f, 0);
+            barRoot.localRotation = Quaternion.Euler(0, 180f, 0);
+            Quad("BarBack", barRoot, Vector3.zero, new Vector2(BarWidth, 0.03f), new Color(0.15f, 0.15f, 0.2f));
+            _avatarFill = Quad("BarFill", barRoot, new Vector3(0, 0, -0.001f), new Vector2(0.0001f, 0.024f), new Color(0.35f, 0.9f, 0.5f)).transform;
+            _avatarAnchor.gameObject.SetActive(false);
         }
 
         void Update()
@@ -145,6 +158,15 @@ namespace Chorewars.Voice
                 for (int i = 0; i < _outputSamples.Length; i++) sum += _outputSamples[i] * _outputSamples[i];
                 voice = Mathf.Sqrt(sum / _outputSamples.Length);
             }
+            bool lookingAtHer = Vector3.Angle(head.forward, _avatarAnchor.position - head.position) < AvatarLookAngle;
+            if (_avatarDwell.Update(lookingAtHer, Time.unscaledDeltaTime))
+            {
+                TelemetryLogger.Info("Voice", "looked at her for the full bar: asking her to talk");
+                _link.Send(VoiceLinkProtocol.Prompt, new byte[0]);
+            }
+            float fillW = Mathf.Max(0.0001f, _avatarDwell.Progress01 * BarWidth);
+            _avatarFill.localScale = new Vector3(fillW, 0.024f, 1f);
+            _avatarFill.localPosition = new Vector3((fillW - BarWidth) * 0.5f, 0, -0.001f);
             _avatar.Tick(Time.unscaledDeltaTime, voice, _mic.Hearing, _claude.Busy);
 
             _status.text = connected ? "PC link: connected" : "PC link: waiting...";

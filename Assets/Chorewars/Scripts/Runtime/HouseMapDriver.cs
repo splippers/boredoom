@@ -230,8 +230,29 @@ namespace Chorewars.Runtime
 
         private void OnIntent(IntentRequest request) => Handle(request);
 
+        /// <summary>
+        /// On a device, a file named <c>name-room.request</c> in the app's files folder holding a room name names the
+        /// room the player is standing in. It is how a spoken "this is the kitchen", which reaches the PC and not the
+        /// game, gets here.
+        /// </summary>
+        private void PollNameRequest()
+        {
+            if (Time.unscaledTime < _nextRequestPollAt) return;
+            _nextRequestPollAt = Time.unscaledTime + 0.5f;
+
+            var path = System.IO.Path.Combine(Application.persistentDataPath, "name-room.request");
+            if (!System.IO.File.Exists(path)) return;
+
+            string name = string.Empty;
+            try { name = System.IO.File.ReadAllText(path).Trim(); System.IO.File.Delete(path); } catch { }
+            if (name.Length > 0) NameRoomHere(name);
+        }
+
+        private float _nextRequestPollAt;
+
         private void Update()
         {
+            PollNameRequest();
             AdoptScannedRooms();
             SampleHeadPath();
             RecomputeLinks();

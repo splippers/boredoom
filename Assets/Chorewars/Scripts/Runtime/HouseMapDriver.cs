@@ -442,6 +442,15 @@ namespace Chorewars.Runtime
             _nextMiniatureAt = Time.unscaledTime + Mathf.Max(0.25f, linkRecomputeIntervalSeconds);
 
             bool anyChanged = false;
+
+            // Rooms named in different spots are stretched until they meet, so the plan is joined up.
+            if (HouseMapBuilder.CloseGaps(_rooms))
+            {
+                for (int i = 0; i < _rooms.Count; i++)
+                    if (_presenter != null) _presenter.SetRoom(_rooms[i]);
+                QueueSave();
+            }
+
             for (int i = 0; i < _rooms.Count; i++)
             {
                 if (!_roomAnchors.ContainsKey(_rooms[i].roomId)) continue;   // scan rooms are the pipeline's

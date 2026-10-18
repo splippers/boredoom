@@ -229,7 +229,9 @@ namespace Chorewars.Runtime
 
                 if (!_copies.ContainsKey(source)) TryMakeCopy(source);
 
-                if (source.enabled && source.gameObject.activeInHierarchy && _copies.ContainsKey(source))
+                // Measured on the rooms alone: the dollhouse floor is the whole 16 m play area, and fitting that into a
+                // hand shrinks the house to a speck.
+                if (source.enabled && source.gameObject.activeInHierarchy && _copies.ContainsKey(source) && IsRoomPiece(source))
                 {
                     if (!any) { bounds = source.bounds; any = true; }
                     else bounds.Encapsulate(source.bounds);
@@ -249,6 +251,13 @@ namespace Chorewars.Runtime
             _centre = bounds.center;
             _extent = Mathf.Max(bounds.size.x, bounds.size.z);
             _halfHeight = bounds.extents.y;
+        }
+
+        bool IsRoomPiece(Renderer source)
+        {
+            for (var t = source.transform; t != null && t != _manager.transform; t = t.parent)
+                if (t.name == "DollhouseMiniature") return true;
+            return false;
         }
 
         void TryMakeCopy(Renderer source)

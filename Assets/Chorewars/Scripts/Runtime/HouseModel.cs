@@ -296,6 +296,53 @@ namespace Chorewars.Runtime
         /// top of somewhere else.
         /// </remarks>
         /// <param name="anchor">Where the player stood when they named this room; growth is capped around it.</param>
+        /// <summary>
+        /// Stretches rooms that face each other across a gap until they meet, so a house drawn from named spots is
+        /// a joined-up plan rather than boxes scattered over the floor. Each side of a gap takes half of it.
+        /// Only rooms that overlap along the other axis by at least half a metre are joined, and only across gaps of
+        /// <paramref name="maxGapMeters"/> or less; running it again changes nothing.
+        /// </summary>
+        public static bool CloseGaps(List<RoomScan> rooms, float maxGapMeters = 6f)
+        {
+            if (rooms == null) return false;
+
+            bool changed = false;
+            for (int i = 0; i < rooms.Count; i++)
+            {
+                for (int j = i + 1; j < rooms.Count; j++)
+                {
+                    var a = rooms[i].boundsXZ;
+                    var b = rooms[j].boundsXZ;
+                    float overlapZ = Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin);
+                    float overlapX = Mathf.Min(a.xMax, b.xMax) - Mathf.Max(a.xMin, b.xMin);
+                    float gapX = Mathf.Max(a.xMin - b.xMax, b.xMin - a.xMax);
+                    float gapZ = Mathf.Max(a.yMin - b.yMax, b.yMin - a.yMax);
+
+                    if (overlapZ >= 0.5f && gapX > 0.01f && gapX <= maxGapMeters)
+                    {
+                        float half = gapX * 0.5f;
+                        bool aLeft = a.xMax < b.xMin;
+                        a = aLeft ? Rect.MinMaxRect(a.xMin, a.yMin, a.xMax + half, a.yMax) : Rect.MinMaxRect(a.xMin - half, a.yMin, a.xMax, a.yMax);
+                        b = aLeft ? Rect.MinMaxRect(b.xMin - half, b.yMin, b.xMax, b.yMax) : Rect.MinMaxRect(b.xMin, b.yMin, b.xMax + half, b.yMax);
+                    }
+                    else if (overlapX >= 0.5f && gapZ > 0.01f && gapZ <= maxGapMeters)
+                    {
+                        float half = gapZ * 0.5f;
+                        bool aBelow = a.yMax < b.yMin;
+                        a = aBelow ? Rect.MinMaxRect(a.xMin, a.yMin, a.xMax, a.yMax + half) : Rect.MinMaxRect(a.xMin, a.yMin - half, a.xMax, a.yMax);
+                        b = aBelow ? Rect.MinMaxRect(b.xMin, b.yMin - half, b.xMax, b.yMax) : Rect.MinMaxRect(b.xMin, b.yMin, b.xMax, b.yMax + half);
+                    }
+                    else continue;
+
+                    var ra = rooms[i]; ra.boundsXZ = a; rooms[i] = ra;
+                    var rb = rooms[j]; rb.boundsXZ = b; rooms[j] = rb;
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
         public static bool TryGrowRoom(List<RoomScan> rooms, string roomId, Vector2 anchor, Vector2 sample,
             float marginMeters = DefaultGrowthMarginMeters,
             float maxHalfExtentMeters = DefaultMaxRoomHalfExtentMeters)

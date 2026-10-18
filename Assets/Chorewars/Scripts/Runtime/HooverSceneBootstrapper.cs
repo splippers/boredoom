@@ -271,6 +271,11 @@ namespace Chorewars.Runtime
             var mapDriver = dollhouseGo.AddComponent<HouseMapDriver>();
             mapDriver.Configure(pipeline, mapPresenter, camera.transform);
 
+            // 7a') The rooms drawn in the real room as glowing outlines, so the player sees what the map knows.
+            var outlinesGo = new GameObject("RoomOutlines");
+            outlinesGo.transform.SetParent(root, false);
+            outlinesGo.AddComponent<RoomOutlines>().Configure(mapDriver, camera.transform);
+
             // 7b) Room-clean celebration: glow + confetti + floating points + haptics + slow-mo.
             var celebration = dollhouseGo.AddComponent<RoomCleanCelebration>();
             celebration.Configure(dollhouse, camera);

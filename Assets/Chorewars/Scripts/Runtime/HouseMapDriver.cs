@@ -88,6 +88,9 @@ namespace Chorewars.Runtime
         /// <summary>Rooms known to the map, in the order they arrived.</summary>
         public IReadOnlyList<RoomScan> Rooms => _rooms;
 
+        /// <summary>The name given to a room, or an empty string.</summary>
+        public string NameOf(string roomId) => HouseMapBuilder.NameOf(_names, roomId) ?? string.Empty;
+
         /// <summary>How many doors the walk has implied.</summary>
         public int LinkCount => _links.Count;
 

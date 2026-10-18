@@ -59,10 +59,10 @@ namespace Chorewars.Voice
         readonly GazePanelPlacement _avatarPlacement = new GazePanelPlacement();
         Transform _avatarAnchor;
         VoiceAvatar _avatar;
-        const float AvatarDwellSeconds = 10f;
+        const float AvatarDwellSeconds = 2f;
         const float AvatarLookAngle = 9f;
         const float BarWidth = 0.34f;
-        readonly DwellButtonLogic _avatarDwell = new DwellButtonLogic { Seconds = AvatarDwellSeconds, DrainSeconds = 1.5f };
+        readonly DwellButtonLogic _avatarDwell = new DwellButtonLogic { Seconds = AvatarDwellSeconds, DrainSeconds = 0.6f };
         Transform _avatarFill;
         readonly float[] _outputSamples = new float[256];
         readonly DwellButtonLogic _repeatDwell = new DwellButtonLogic();

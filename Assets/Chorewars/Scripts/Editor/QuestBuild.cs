@@ -6,6 +6,8 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.XR.OpenXR;
+using UnityEngine.XR.OpenXR.Features.Meta;
 
 namespace Chorewars.Build
 {
@@ -114,11 +116,34 @@ namespace Chorewars.Build
         /// OpenGLES3 fallback, and linear colour. Internet permission is on because ChoreWars Battle
         /// talks to a peer over UDP.
         /// </summary>
+        /// <summary>
+        /// Turns on "Camera Image Support" in Meta's Camera (Passthrough) feature. Without it the camera
+        /// system runs but never hands over an image, so TryAcquireLatestCpuImage quietly returns false.
+        /// The setting lives in a generated settings asset that is not committed, so the build sets it.
+        /// </summary>
+        static void EnableCameraImages()
+        {
+            var settings = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
+            var feature = settings != null ? settings.GetFeature<ARCameraFeature>() : null;
+            if (feature == null)
+            {
+                Debug.LogWarning("[BoreDOOM] Meta Camera (Passthrough) feature not found; camera images stay off.");
+                return;
+            }
+
+            if (feature.cameraImageSupportEnabled) return;
+
+            feature.cameraImageSupportEnabled = true;
+            EditorUtility.SetDirty(feature);
+        }
+
         public static void ApplyQuestPlayerSettings()
         {
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, AndroidApplicationId);
 
-            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
+            // 32 (Android 12L) because the Meta Quest Camera feature, which the camera probe uses, refuses to
+            // build below it. A Quest 3 runs Android 14, so nothing is lost.
+            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.Android.forceInternetPermission = true;
@@ -131,6 +156,8 @@ namespace Chorewars.Build
                 new[] { GraphicsDeviceType.Vulkan, GraphicsDeviceType.OpenGLES3 });
 
             PlayerSettings.colorSpace = ColorSpace.Linear;
+
+            EnableCameraImages();
 
             AssetDatabase.SaveAssets();
             Debug.Log("[BoreDOOM] Applied Quest player settings — " + Validate());

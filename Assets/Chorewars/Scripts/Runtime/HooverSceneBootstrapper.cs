@@ -207,7 +207,13 @@ namespace Chorewars.Runtime
 
             var toolRenderer = tool.GetComponent<Renderer>();
             if (toolRenderer != null)
+            {
                 toolRenderer.sharedMaterial = PlaceholderMaterials.CreateOpaque(new Color(1f, 0.55f, 0.1f));
+
+                // On the headset the puck only floats in the room and confuses a first look at the game, so it
+                // is not drawn there for now. The tool still moves and still paints coverage; only its mesh is off.
+                if (!Application.isEditor) toolRenderer.enabled = false;
+            }
 
             var pathTracker = tool.AddComponent<PathTracker>();
             var toolDriver = tool.AddComponent<PlaceholderToolDriver>();

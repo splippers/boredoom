@@ -6,4 +6,6 @@
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
     <!-- ORAC voice input. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Passthrough camera access, asked for only when the camera probe is requested (see CameraFrameProbe). -->
+    <uses-permission android:name="horizonos.permission.HEADSET_CAMERA" />
 </manifest>

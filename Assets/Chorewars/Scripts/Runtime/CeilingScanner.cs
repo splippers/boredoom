@@ -33,6 +33,7 @@ namespace Chorewars.Runtime
         bool _haveSteady;
 
         Transform _reticle;
+        float _nextTrace;
         LineRenderer _line;
         TextMesh _help;
         readonly List<GameObject> _markers = new List<GameObject>();
@@ -68,7 +69,11 @@ namespace Chorewars.Runtime
 
             if (!onCeiling)
             {
-                _reticle.gameObject.SetActive(false);
+                // Red dot ahead of the gaze: "tip your head up until it turns white and then green".
+                _reticle.gameObject.SetActive(true);
+                _reticle.position = _head.position + _head.forward * 2f;
+                _reticle.localScale = Vector3.one * 0.08f;
+                _reticle.GetComponent<MeshRenderer>().sharedMaterial.color = new Color(1f, 0.15f, 0.1f);
                 _dwell.Update(false, Time.unscaledDeltaTime);
                 _haveSteady = false;
                 // Looking away never cancels (people glance down at their hands or the lady); say "cancel" instead.
@@ -87,6 +92,11 @@ namespace Chorewars.Runtime
             }
 
             bool fired = _dwell.Update(true, Time.unscaledDeltaTime);
+            if (Time.unscaledTime >= _nextTrace)
+            {
+                _nextTrace = Time.unscaledTime + 2f;
+                TelemetryLogger.Info("Ceiling", $"aiming at the ceiling: dwell {_dwell.Progress01:0.00}, ceiling {_ceilingY:0.00} m, head {_head.position.y:0.00} m");
+            }
             SetHelp(hit - Vector3.up * 0.25f, Prompt());
             SetReticle(_dwell.Progress01);
 

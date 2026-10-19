@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 namespace Chorewars.Voice
 {
     /// <summary>
-    /// A floating, stylised head with curly black hair that is Claude's face in the headset: it blinks, looks
+    /// A floating, stylised head with curly fiery-red hair that is Claudia's face in the headset: it blinks, looks
     /// at the player, moves its mouth with the voice, tilts to listen and glances up while thinking.
     /// </summary>
     /// <remarks>
@@ -207,9 +207,9 @@ namespace Chorewars.Voice
                 }
             }
 
-            AddMesh("HairDark", dark, new Color(0.035f, 0.03f, 0.05f));
-            AddMesh("HairMid", mid, new Color(0.075f, 0.065f, 0.095f));
-            AddMesh("HairGloss", glossy, new Color(0.15f, 0.14f, 0.2f));
+            AddMesh("HairDark", dark, new Color(0.45f, 0.08f, 0.02f));
+            AddMesh("HairMid", mid, new Color(0.75f, 0.17f, 0.04f));
+            AddMesh("HairGloss", glossy, new Color(0.98f, 0.45f, 0.12f));
         }
 
         void AddMesh(string name, List<Part> parts, Color colour, Transform parent = null)

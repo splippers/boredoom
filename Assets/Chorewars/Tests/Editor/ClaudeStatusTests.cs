@@ -41,10 +41,10 @@ namespace Chorewars.Tests
         public void DotsAnimateBetweenOneAndThree()
         {
             var s = ClaudeStatus.Parse("thinking");
-            Assert.AreEqual("Claude is thinking.", s.Describe(1));
-            Assert.AreEqual("Claude is thinking...", s.Describe(3));
-            Assert.AreEqual("Claude is thinking.", s.Describe(0));
-            Assert.AreEqual("Claude is thinking...", s.Describe(9));
+            Assert.AreEqual("Claudia is thinking.", s.Describe(1));
+            Assert.AreEqual("Claudia is thinking...", s.Describe(3));
+            Assert.AreEqual("Claudia is thinking.", s.Describe(0));
+            Assert.AreEqual("Claudia is thinking...", s.Describe(9));
         }
 
         [Test]

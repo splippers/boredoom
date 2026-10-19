@@ -56,7 +56,7 @@ namespace Chorewars.Voice
         const float AvatarYawOffsetDegrees = -34f;
         const float AvatarDistance = 1.25f;
         const float AvatarScale = 1.5f;
-        readonly GazePanelPlacement _avatarPlacement = new GazePanelPlacement();
+        readonly GazePanelPlacement _avatarPlacement = new GazePanelPlacement { RecenterDistance = 1.8f, RecenterAngle = 40f };
         Transform _avatarAnchor;
         VoiceAvatar _avatar;
         const float AvatarDwellSeconds = 2f;
@@ -100,7 +100,8 @@ namespace Chorewars.Voice
             _avatarAnchor.SetParent(transform, false);
             _avatar = new VoiceAvatar(_avatarAnchor);
             _avatar.Root.localScale = Vector3.one * AvatarScale;
-            _avatarPlacement.Anchored = true;
+            // Claudia follows the player from room to room (the talk window stays put like the other menus).
+            _avatarPlacement.Anchored = false;
 
             // The bar under her face: turned half round because the anchor's +Z points at the player.
             var barRoot = new GameObject("AvatarBar").transform;
@@ -307,7 +308,7 @@ namespace Chorewars.Voice
             Place(Quad("Background", _root, Vector3.zero, Vector2.one, new Color(0.05f, 0.07f, 0.10f)), PanelLayout.Background, 0.02f);
 
             _body = Label("Instruction", _root, TopLeftOf(PanelLayout.Body), 64, 0.0055f, TextAnchor.UpperLeft, Color.white);
-            _body.text = "Waiting for Claude...";
+            _body.text = "Waiting for Claudia...";
             _thinking = Label("Thinking", _root, LeftOf(PanelLayout.Thinking), 64, 0.0033f, TextAnchor.MiddleLeft, new Color(1f, 0.85f, 0.3f));
             _status = Label("Status", _root, LeftOf(PanelLayout.Status), 64, 0.0028f, TextAnchor.MiddleLeft, new Color(0.6f, 0.7f, 0.8f));
             _status.text = "PC link: waiting...";

@@ -46,8 +46,8 @@ namespace Chorewars.Voice
             switch (kind)
             {
                 case Kind.Transcribing: what = "Listening to what you said"; break;
-                case Kind.Working: what = "Claude is working" + (string.IsNullOrEmpty(detail) ? string.Empty : ": " + Clip(detail, maxDetail)); break;
-                default: what = "Claude is thinking"; break;
+                case Kind.Working: what = "Claudia is working" + (string.IsNullOrEmpty(detail) ? string.Empty : ": " + Clip(detail, maxDetail)); break;
+                default: what = "Claudia is thinking"; break;
             }
 
             string line = what + trail;

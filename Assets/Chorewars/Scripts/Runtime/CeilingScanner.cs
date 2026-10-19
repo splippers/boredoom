@@ -11,8 +11,8 @@ namespace Chorewars.Runtime
     /// </summary>
     /// <remarks>
     /// Start it with a <c>ceiling-scan.request</c> file holding the room's name. A reticle follows the gaze on the
-    /// ceiling; hold it still on a corner and a marker drops. Look back at the first marker to finish, or look down
-    /// to cancel. The ceiling height is a guess (2.5 m) unless a <c>ceiling-height.request</c> file says otherwise.
+    /// ceiling; hold it still on a corner and a marker drops. Look back at the first marker to finish, or say "cancel"
+    /// (a <c>ceiling-cancel.request</c> file) to cancel. The ceiling height is a guess (2.5 m) unless a <c>ceiling-height.request</c> file says otherwise.
     /// The outline becomes a room in the house map, drawn on the dollhouse and in the real room.
     /// </remarks>
     public sealed class CeilingScanner : MonoBehaviour
@@ -71,9 +71,8 @@ namespace Chorewars.Runtime
                 _reticle.gameObject.SetActive(false);
                 _dwell.Update(false, Time.unscaledDeltaTime);
                 _haveSteady = false;
-                // Looking down with some corners marked cancels; with none yet it just waits.
-                if (_head.forward.y < -0.35f && _corners.Count > 0) Cancel();
-                else SetHelp(_head.position + _head.forward * 1.5f, Prompt());
+                // Looking away never cancels (people glance down at their hands or the lady); say "cancel" instead.
+                SetHelp(_head.position + _head.forward * 1.5f, Prompt());
                 return;
             }
 
@@ -130,7 +129,7 @@ namespace Chorewars.Runtime
 
         void Cancel()
         {
-            TelemetryLogger.Info("Ceiling", "ceiling scan cancelled (looked down)");
+            TelemetryLogger.Info("Ceiling", "ceiling scan cancelled on request");
             Teardown();
         }
 
@@ -215,6 +214,13 @@ namespace Chorewars.Runtime
                     }
                 }
                 catch { }
+            }
+
+            var cancel = System.IO.Path.Combine(Application.persistentDataPath, "ceiling-cancel.request");
+            if (System.IO.File.Exists(cancel))
+            {
+                try { System.IO.File.Delete(cancel); } catch { }
+                if (_active) Cancel();
             }
 
             var start = System.IO.Path.Combine(Application.persistentDataPath, "ceiling-scan.request");

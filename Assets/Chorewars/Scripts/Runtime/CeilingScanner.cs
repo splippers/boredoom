@@ -32,6 +32,11 @@ namespace Chorewars.Runtime
         Vector3 _steadyAt;
         bool _haveSteady;
 
+        // Height calibration: the same spot looked at from two places fixes the ceiling height, so markers do not slide.
+        bool _heightKnown;
+        bool _haveFirstGaze;
+        Vector3 _firstOrigin, _firstDirection;
+
         Transform _reticle;
         float _nextTrace;
         LineRenderer _line;
@@ -56,6 +61,7 @@ namespace Chorewars.Runtime
             _corners.Clear();
             _dwell.Update(false, 10f);
             _haveSteady = false;
+            _haveFirstGaze = false;
             BuildVisuals();
             TelemetryLogger.Info("Ceiling", $"ceiling scan started for \"{roomName}\" (ceiling {_ceilingY:0.00} m)");
         }
@@ -102,11 +108,44 @@ namespace Chorewars.Runtime
 
             if (!fired) return;
 
+            if (!_heightKnown)
+            {
+                Calibrate();
+                return;
+            }
+
             if (CeilingMath.ClosesLoop(_corners, hit)) { Finish(); return; }
             AddCorner(hit);
         }
 
-        string Prompt() => _corners.Count == 0 ? "Look at a ceiling corner and hold still"
+        void Calibrate()
+        {
+            if (!_haveFirstGaze)
+            {
+                _haveFirstGaze = true;
+                _firstOrigin = _head.position;
+                _firstDirection = _head.forward;
+                _haveSteady = false;
+                TelemetryLogger.Info("Ceiling", "height calibration: first look taken");
+                return;
+            }
+
+            if (CeilingMath.TryHeightFromTwoGazes(_firstOrigin, _firstDirection, _head.position, _head.forward, out var h))
+            {
+                _ceilingY = h;
+                _heightKnown = true;
+                TelemetryLogger.Info("Ceiling", $"ceiling height measured: {h:0.00} m");
+            }
+            else
+            {
+                _haveFirstGaze = false;   // not far enough apart, or not the same spot: start the pair again
+                TelemetryLogger.Info("Ceiling", "height calibration: the two looks did not agree, starting again");
+            }
+        }
+
+        string Prompt() => !_heightKnown
+            ? (_haveFirstGaze ? "Now step 2 m sideways and look at the same spot" : "First, look at any one spot on the ceiling and hold still")
+            : _corners.Count == 0 ? "Look at a ceiling corner and hold still"
             : _corners.Count < 3 ? $"{_corners.Count} corner(s). Next corner"
             : $"{_corners.Count} corners. Next corner, or look at the first to finish";
 
@@ -220,6 +259,7 @@ namespace Chorewars.Runtime
                     if (float.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var h) && h > 1.8f && h < 5f)
                     {
                         _ceilingY = h;
+                        _heightKnown = true;
                         TelemetryLogger.Info("Ceiling", $"ceiling height set to {h:0.00} m");
                     }
                 }

@@ -60,5 +60,31 @@ namespace Chorewars.Tests
             Assert.AreEqual(2f, rooms[0].boundsXZ.xMax, 0.001f, "the measured room keeps its walls");
             Assert.AreEqual(2f, rooms[1].boundsXZ.xMin, 0.001f, "the other room takes the whole gap");
         }
-    }
+    
+        [Test]
+        public void TwoLooksAtTheSameSpotGiveTheCeilingHeight()
+        {
+            var spot = new Vector3(1f, 2.7f, 4f);
+            var a = new Vector3(0, 1.6f, 0);
+            var b = new Vector3(2.5f, 1.6f, 0);
+            Assert.IsTrue(CeilingMath.TryHeightFromTwoGazes(a, spot - a, b, spot - b, out var h));
+            Assert.AreEqual(2.7f, h, 0.01f);
+        }
+
+        [Test]
+        public void TwoLooksFromTheSamePlaceGiveNoHeight()
+        {
+            var spot = new Vector3(1f, 2.7f, 4f);
+            var a = new Vector3(0, 1.6f, 0);
+            Assert.IsFalse(CeilingMath.TryHeightFromTwoGazes(a, spot - a, a + new Vector3(0.2f, 0, 0), spot - a, out _));
+        }
+
+        [Test]
+        public void TwoLooksAtDifferentSpotsAreRejected()
+        {
+            var a = new Vector3(0, 1.6f, 0);
+            var b = new Vector3(2.5f, 1.6f, 0);
+            Assert.IsFalse(CeilingMath.TryHeightFromTwoGazes(a, new Vector3(1f, 2.7f, 4f) - a, b, new Vector3(3f, 2.7f, 6f) - b, out _));
+        }
+}
 }

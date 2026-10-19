@@ -23,6 +23,33 @@ namespace Chorewars.Runtime
             return true;
         }
 
+        /// <summary>
+        /// The ceiling's height from looking at the same spot from two places: where the two gaze rays pass closest.
+        /// Fails if the places are under <paramref name="minBaseline"/> metres apart (sideways) or the rays are near parallel.
+        /// </summary>
+        public static bool TryHeightFromTwoGazes(Vector3 originA, Vector3 dirA, Vector3 originB, Vector3 dirB, out float height, float minBaseline = 1.0f)
+        {
+            height = 0f;
+            dirA.Normalize(); dirB.Normalize();
+            var flat = new Vector2(originB.x - originA.x, originB.z - originA.z);
+            if (flat.magnitude < minBaseline) return false;
+
+            var w = originA - originB;
+            float b = Vector3.Dot(dirA, dirB), d = Vector3.Dot(dirA, w), e = Vector3.Dot(dirB, w);
+            float denom = 1f - b * b;
+            if (denom < 1e-3f) return false;
+
+            float sA = (b * e - d) / denom, sB = (e - b * d) / denom;
+            if (sA <= 0f || sB <= 0f) return false;
+
+            var pointA = originA + dirA * sA;
+            var pointB = originB + dirB * sB;
+            if (Vector3.Distance(pointA, pointB) > 0.5f) return false;   // the two looks were not at the same spot
+
+            height = (pointA.y + pointB.y) * 0.5f;
+            return height > 1.8f && height < 6f;
+        }
+
         /// <summary>The smallest box (floor plan) holding all the corners.</summary>
         public static Rect Outline(IReadOnlyList<Vector3> corners)
         {

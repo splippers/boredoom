@@ -32,6 +32,8 @@ import threading
 import time
 import wave
 
+import conversation
+
 AUDIO, END, PROMPT, WAV, TEXT, STATUS = 0x01, 0x02, 0x03, 0x10, 0x11, 0x12
 RATE = 16000
 STATE_DIR = os.path.expanduser("~/.local/share/boredoom-voice")
@@ -98,8 +100,11 @@ class Hearing:
         return " ".join(s.text.strip() for s in segments).strip()
 
 
-def serve_client(conn, hearing, inbox, outbox_dir):
+def serve_client(conn, hearing, inbox, outbox_dir, merge_wait=1.2):
     pcm = bytearray()
+    merger = conversation.Merger(merge_wait)
+    attention = conversation.Attention()
+    merge_lock = threading.Lock()
     outgoing = queue.Queue()
     alive = threading.Event()
     alive.set()
@@ -144,10 +149,22 @@ def serve_client(conn, hearing, inbox, outbox_dir):
             try:
                 send(TEXT, text.encode("utf-8"))
                 send(WAV, data)
+                attention.spoke(time.time())
                 log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "spoke", "text": text})
             except OSError:
                 return
 
+    def pump_merge():
+        while alive.is_set():
+            with merge_lock:
+                line = merger.due(time.time())
+            if line:
+                to_her = attention.heard(line, time.time())
+                status("thinking\t" + line)  # before the transcript reaches Claude, so the player sees it was heard
+                log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "heard", "text": line, "to_her": to_her})
+            time.sleep(0.1)
+
+    threading.Thread(target=pump_merge, daemon=True).start()
     threading.Thread(target=pump_outbox, daemon=True).start()
     threading.Thread(target=pump_send, daemon=True).start()
     log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "headset connected"})
@@ -158,6 +175,7 @@ def serve_client(conn, hearing, inbox, outbox_dir):
                 if len(pcm) < RATE * 2 * MAX_UTTERANCE_SECONDS:
                     pcm += payload
             elif kind == PROMPT:
+                attention.looked(time.time())
                 status("thinking\tYou looked at me")
                 log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "prompt", "text": "Jon looked at you and wants you to talk"})
             elif kind == END:
@@ -165,10 +183,10 @@ def serve_client(conn, hearing, inbox, outbox_dir):
                     status("transcribing")
                 text = hearing.transcribe(bytes(pcm))
                 pcm.clear()
-                if text:
-                    status("thinking\t" + text)  # before the transcript reaches Claude, so the player sees it was heard
-                    log_line(inbox, {"t": time.strftime("%H:%M:%S"), "event": "heard", "text": text})
-                else:
+                if text and not conversation.is_noise(text):
+                    with merge_lock:
+                        merger.add(text, time.time())
+                elif not merger.pending:
                     status("idle")
     except ConnectionError:
         pass
@@ -183,6 +201,7 @@ def main():
     ap.add_argument("--port", type=int, default=7777)
     ap.add_argument("--model", default="base.en", help="faster-whisper model name (tiny.en, base.en, small.en)")
     ap.add_argument("--state-dir", default=STATE_DIR)
+    ap.add_argument("--merge-wait", type=float, default=1.2, help="seconds to wait for the rest of a thought before it goes to Claude")
     args = ap.parse_args()
 
     os.makedirs(os.path.join(args.state_dir, "outbox"), exist_ok=True)
@@ -197,7 +216,7 @@ def main():
     print(f"voice link listening on 127.0.0.1:{args.port} (model {args.model})", flush=True)
     while True:
         conn, _ = srv.accept()
-        serve_client(conn, hearing, inbox, outbox_dir)
+        serve_client(conn, hearing, inbox, outbox_dir, args.merge_wait)
 
 
 if __name__ == "__main__":

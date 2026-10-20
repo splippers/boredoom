@@ -18,7 +18,7 @@ from voice_link import AUDIO, END, TEXT, WAV, read_frame, send_frame  # noqa: E4
 
 PORT = 17777
 state = tempfile.mkdtemp(prefix="voicetest-")
-server = subprocess.Popen([sys.executable, os.path.join(HERE, "voice_link.py"), "--port", str(PORT), "--state-dir", state],
+server = subprocess.Popen([sys.executable, os.path.join(HERE, "voice_link.py"), "--port", str(PORT), "--state-dir", state, "--merge-wait", "0.3"],
                           stdout=subprocess.PIPE, text=True)
 failures = []
 

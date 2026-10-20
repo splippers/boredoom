@@ -19,6 +19,7 @@ namespace Chorewars.Runtime
     {
         const float DwellSeconds = 1.2f;
         const float SteadyMeters = 0.35f;
+        const float MinStepMeters = 1.0f;
 
         HouseMapDriver _driver;
         Transform _head;
@@ -72,6 +73,20 @@ namespace Chorewars.Runtime
             if (!_active || _head == null) return;
 
             bool onCeiling = CeilingMath.TryHit(_head.position, _head.forward, _ceilingY, out var hit);
+
+            // The second look for the height must come from somewhere else: hold the dwell back until they have moved.
+            if (onCeiling && !_heightKnown && _haveFirstGaze
+                && new Vector2(_head.position.x - _firstOrigin.x, _head.position.z - _firstOrigin.z).magnitude < MinStepMeters)
+            {
+                _dwell.Update(false, 10f);
+                _haveSteady = false;
+                _reticle.gameObject.SetActive(true);
+                _reticle.position = hit;
+                _reticle.localScale = Vector3.one * 0.1f;
+                _reticle.GetComponent<MeshRenderer>().sharedMaterial.color = new Color(1f, 0.8f, 0.2f);
+                SetHelp(hit - Vector3.up * 0.25f, Prompt());
+                return;
+            }
 
             if (!onCeiling)
             {

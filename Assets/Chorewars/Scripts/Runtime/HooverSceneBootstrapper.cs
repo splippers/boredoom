@@ -279,6 +279,9 @@ namespace Chorewars.Runtime
             // 7a'') Scan a room by looking at its ceiling corners (started by a request file).
             outlinesGo.AddComponent<CeilingScanner>().Configure(mapDriver, camera.transform);
 
+            // 7a''') Map the usable floor of a named room: walk it green, mark furniture red (started by a request file).
+            outlinesGo.AddComponent<FloorScanner>().Configure(mapDriver, camera.transform);
+
             // 7b) Room-clean celebration: glow + confetti + floating points + haptics + slow-mo.
             var celebration = dollhouseGo.AddComponent<RoomCleanCelebration>();
             celebration.Configure(dollhouse, camera);

@@ -85,6 +85,25 @@ namespace Chorewars.AR
             }
         }
 
+        /// <summary>Corners, in world space, of every door-frame surface the headset has outlined.</summary>
+        public void ReadDoorOutlines(List<Vector3[]> into)
+        {
+            if (_planes == null) return;
+
+            foreach (var plane in _planes.trackables)
+            {
+                if (KindOf(plane.classifications) != SceneSurfaceKind.Door) continue;
+
+                var boundary = plane.boundary;
+                if (boundary.Length < 3) continue;
+
+                var corners = new Vector3[boundary.Length];
+                for (int i = 0; i < boundary.Length; i++)
+                    corners[i] = plane.transform.TransformPoint(new Vector3(boundary[i].x, 0f, boundary[i].y));
+                into.Add(corners);
+            }
+        }
+
         private static SceneSurfaceKind KindOf(PlaneClassifications c)
         {
             if ((c & PlaneClassifications.Floor) != 0) return SceneSurfaceKind.Floor;

@@ -164,6 +164,7 @@ namespace Chorewars.Runtime
             else
             {
                 var sceneReader = scanGo.AddComponent<SceneSurfaceReader>();
+                scanGo.AddComponent<DoorGlow>().Configure(sceneReader);
                 var questScan = scanGo.AddComponent<QuestScanSource>();
                 questScan.Configure(meshTracker, sceneReader);
                 scanSource = questScan;

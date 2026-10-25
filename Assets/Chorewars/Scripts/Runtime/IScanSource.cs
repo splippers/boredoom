@@ -25,6 +25,31 @@ namespace Chorewars.Runtime
         /// </remarks>
         public bool assumed;
 
+        /// <summary>
+        /// The real corners of the room (x, z), in order round the edge, when they were measured one by one
+        /// from the ceiling. Empty for a room known only as a box. It is only believed while it still fits
+        /// <see cref="boundsXZ"/>: a room that has since grown or moved is drawn as its box again.
+        /// </summary>
+        public Vector2[] cornersXZ;
+
+        /// <summary>The measured corners, or null when there are none that still match the box.</summary>
+        public Vector2[] FittedCorners()
+        {
+            if (cornersXZ == null || cornersXZ.Length < 3) return null;
+
+            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+            foreach (var c in cornersXZ)
+            {
+                minX = Mathf.Min(minX, c.x); maxX = Mathf.Max(maxX, c.x);
+                minY = Mathf.Min(minY, c.y); maxY = Mathf.Max(maxY, c.y);
+            }
+
+            const float tolerance = 0.05f;
+            bool fits = Mathf.Abs(minX - boundsXZ.xMin) < tolerance && Mathf.Abs(maxX - boundsXZ.xMax) < tolerance
+                     && Mathf.Abs(minY - boundsXZ.yMin) < tolerance && Mathf.Abs(maxY - boundsXZ.yMax) < tolerance;
+            return fits ? cornersXZ : null;
+        }
+
         public Bounds ToBounds()
         {
             var size = new Vector3(

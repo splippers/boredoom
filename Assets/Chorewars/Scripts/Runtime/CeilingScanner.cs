@@ -184,7 +184,9 @@ namespace Chorewars.Runtime
         void Finish()
         {
             var outline = CeilingMath.Outline(_corners);
-            bool ok = _driver != null && _driver.AdoptMeasuredRoom(_name, outline, _ceilingY, _head.position);
+            var corners = new Vector2[_corners.Count];
+            for (int i = 0; i < corners.Length; i++) corners[i] = new Vector2(_corners[i].x, _corners[i].z);
+            bool ok = _driver != null && _driver.AdoptMeasuredRoom(_name, outline, _ceilingY, _head.position, corners);
             TelemetryLogger.Info("Ceiling", ok
                 ? $"ceiling scan done: \"{_name}\" is {outline.width:0.0} x {outline.height:0.0} m"
                 : "ceiling scan ended: too small to be a room");

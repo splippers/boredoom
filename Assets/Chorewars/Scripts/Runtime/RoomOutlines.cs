@@ -23,9 +23,10 @@ namespace Chorewars.Runtime
         {
             public GameObject root;
             public LineRenderer floor, top;
-            public LineRenderer[] posts;
+            public List<LineRenderer> posts;
             public TextMesh label;
             public Rect rect;
+            public Vector2[] corners;
             public float wallHeight, floorY;
             public Color colour;
         }
@@ -63,7 +64,7 @@ namespace Chorewars.Runtime
                 }
 
                 bool current = room.roomId == here;
-                if (o.rect != room.boundsXZ || o.wallHeight != room.wallHeight || o.floorY != room.floorY) Shape(o, room);
+                if (o.rect != room.boundsXZ || !SameCorners(o.corners, room.FittedCorners()) || o.wallHeight != room.wallHeight || o.floorY != room.floorY) Shape(o, room);
                 Style(o, current);
                 o.label.text = _driver.NameOf(room.roomId);
             }
@@ -85,7 +86,7 @@ namespace Chorewars.Runtime
             o.root.transform.SetParent(transform, false);
             o.floor = Line(o.root.transform, 5);
             o.top = Line(o.root.transform, 5);
-            o.posts = new[] { Line(o.root.transform, 2), Line(o.root.transform, 2), Line(o.root.transform, 2), Line(o.root.transform, 2) };
+            o.posts = new List<LineRenderer>();
 
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(o.root.transform, false);
@@ -117,24 +118,56 @@ namespace Chorewars.Runtime
             return l;
         }
 
+        static bool SameCorners(Vector2[] a, Vector2[] b)
+        {
+            if (a == null || b == null) return a == b;
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
+            return true;
+        }
+
         void Shape(Outline o, RoomScan room)
         {
             o.rect = room.boundsXZ;
+            o.corners = room.FittedCorners();
             o.wallHeight = room.wallHeight;
             o.floorY = room.floorY;
 
             float y0 = room.floorY + FloorLift;
             float y1 = room.floorY + Mathf.Max(1.8f, room.wallHeight);
-            var low = Corners(room.boundsXZ, y0);
-            var high = Corners(room.boundsXZ, y1);
 
-            for (int i = 0; i < 5; i++)
+            Vector3[] low, high;
+            if (o.corners != null)
             {
-                o.floor.SetPosition(i, low[i % 4]);
-                o.top.SetPosition(i, high[i % 4]);
+                low = new Vector3[o.corners.Length];
+                high = new Vector3[o.corners.Length];
+                for (int i = 0; i < low.Length; i++)
+                {
+                    low[i] = new Vector3(o.corners[i].x, y0, o.corners[i].y);
+                    high[i] = new Vector3(o.corners[i].x, y1, o.corners[i].y);
+                }
             }
-            for (int i = 0; i < 4; i++)
+            else
             {
+                low = Corners(room.boundsXZ, y0);
+                high = Corners(room.boundsXZ, y1);
+            }
+
+            int n = low.Length;
+            o.floor.positionCount = n + 1;
+            o.top.positionCount = n + 1;
+            for (int i = 0; i <= n; i++)
+            {
+                o.floor.SetPosition(i, low[i % n]);
+                o.top.SetPosition(i, high[i % n]);
+            }
+
+            while (o.posts.Count < n) o.posts.Add(Line(o.root.transform, 2));
+            for (int i = 0; i < o.posts.Count; i++)
+            {
+                bool used = i < n;
+                o.posts[i].gameObject.SetActive(used);
+                if (!used) continue;
                 o.posts[i].SetPosition(0, low[i]);
                 o.posts[i].SetPosition(1, high[i]);
             }

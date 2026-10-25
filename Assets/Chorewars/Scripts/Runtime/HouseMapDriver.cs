@@ -259,7 +259,7 @@ namespace Chorewars.Runtime
         /// <summary>
         /// Adds a room whose outline was measured, or replaces the rough room the player is standing in with it.
         /// </summary>
-        public bool AdoptMeasuredRoom(string name, Rect outline, float wallHeight, Vector3 standingAt)
+        public bool AdoptMeasuredRoom(string name, Rect outline, float wallHeight, Vector3 standingAt, Vector2[] corners = null)
         {
             if (outline.width < 0.8f || outline.height < 0.8f) return false;
 
@@ -274,12 +274,13 @@ namespace Chorewars.Runtime
                 room = _rooms[index];
                 room.boundsXZ = outline;
                 room.wallHeight = wallHeight;
+                room.cornersXZ = corners;
                 _rooms[index] = room;
             }
             else
             {
                 roomId = HouseMapBuilder.NextRoomId(_rooms, _registered);
-                room = new RoomScan { roomId = roomId, boundsXZ = outline, floorY = 0f, wallHeight = wallHeight };
+                room = new RoomScan { roomId = roomId, boundsXZ = outline, floorY = 0f, wallHeight = wallHeight, cornersXZ = corners };
                 _rooms.Add(room);
                 _registered.Add(roomId);
             }

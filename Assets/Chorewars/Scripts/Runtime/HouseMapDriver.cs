@@ -314,6 +314,41 @@ namespace Chorewars.Runtime
             FlushSaveIfDue();
         }
 
+        /// <summary>
+        /// Takes the rooms the headset's own room scan found: a room with a known id is updated to the new
+        /// measurement (keeping its name), a new one is added.
+        /// </summary>
+        public void AdoptSceneRooms(IReadOnlyList<RoomScan> found)
+        {
+            if (found == null) return;
+
+            foreach (var room in found)
+            {
+                if (string.IsNullOrEmpty(room.roomId) || room.assumed) continue;
+
+                int index = -1;
+                for (int i = 0; i < _rooms.Count; i++) if (_rooms[i].roomId == room.roomId) { index = i; break; }
+
+                if (index >= 0) _rooms[index] = room;
+                else _rooms.Add(room);
+
+                _registered.Add(room.roomId);
+                _roomAnchors[room.roomId] = room.boundsXZ.center;
+                _measured.Add(room.roomId);
+
+                if (_presenter != null)
+                {
+                    _presenter.SetRoom(room);
+                    _presenter.SetName(room.roomId, HouseMapBuilder.NameOf(_names, room.roomId));
+                }
+                if (_pipeline != null) _pipeline.EnsureRoom(room);
+            }
+
+            HideAssumedBoxes();
+            QueueSave();
+            Debug.Log($"[HouseMap] {found.Count} room(s) taken from the headset's room scan — {_rooms.Count} known.");
+        }
+
         /// <summary>Pick up rooms the scan has found since the last look.</summary>
         private void AdoptScannedRooms()
         {

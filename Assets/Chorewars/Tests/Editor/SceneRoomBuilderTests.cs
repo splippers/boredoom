@@ -34,6 +34,27 @@ namespace Chorewars.Tests
         }
 
         [Test]
+        public void ARoomKeepsTheCornersOfItsFloor()
+        {
+            var lShape = new SceneSurface
+            {
+                kind = SceneSurfaceKind.Floor,
+                center = new Vector3(2f, 0f, 2.5f),
+                outlineXZ = new[] { new Vector2(0, 0), new Vector2(4, 0), new Vector2(4, 2), new Vector2(2, 2), new Vector2(2, 5), new Vector2(0, 5) }
+            };
+
+            var room = SceneRoomBuilder.Build(new[] { lShape }).rooms[0];
+            Assert.AreEqual(6, room.FittedCorners().Length);
+        }
+
+        [Test]
+        public void TwoFloorsMergedIntoOneRoomKeepOnlyTheBox()
+        {
+            var scene = SceneRoomBuilder.Build(new[] { Floor(0, 0, 4, 3), Floor(0.1f, 0.1f, 4, 3) });
+            Assert.IsNull(scene.rooms[0].FittedCorners());
+        }
+
+        [Test]
         public void TwoFloorsOnTopOfEachOtherAreOneRoom()
         {
             var scene = SceneRoomBuilder.Build(new[] { Floor(0, 0, 4, 3), Floor(0.1f, 0.1f, 4, 3) });

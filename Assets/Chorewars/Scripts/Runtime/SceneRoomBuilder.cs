@@ -46,7 +46,7 @@ namespace Chorewars.Runtime
             var result = new SceneRooms();
             if (surfaces == null) return result;
 
-            var floors = new List<(Rect rect, float y)>();
+            var floors = new List<(Rect rect, float y, Vector2[] corners)>();
             var ceilings = new List<(Vector2 centre, float y)>();
             var doors = new List<Vector3>();
             float lowest = float.PositiveInfinity;
@@ -58,7 +58,7 @@ namespace Chorewars.Runtime
                 {
                     case SceneSurfaceKind.Floor:
                         if (!TryRect(s, out var rect)) break;
-                        floors.Add((rect, s.center.y));
+                        floors.Add((rect, s.center.y, s.outlineXZ));
                         lowest = Mathf.Min(lowest, s.center.y);
                         break;
                     case SceneSurfaceKind.Ceiling:
@@ -74,14 +74,15 @@ namespace Chorewars.Runtime
             result.floorY = lowest;
 
             floors.Sort((a, b) => (b.rect.width * b.rect.height).CompareTo(a.rect.width * a.rect.height));
-            var merged = new List<(Rect rect, float y)>();
+            var merged = new List<(Rect rect, float y, Vector2[] corners)>();
             foreach (var f in floors)
             {
                 bool absorbed = false;
                 for (int i = 0; i < merged.Count; i++)
                 {
                     if (OverlapShare(merged[i].rect, f.rect) < 0.5f) continue;
-                    merged[i] = (Union(merged[i].rect, f.rect), merged[i].y);
+                    // Two surfaces made one room: the union is no longer either one's outline, so only the box is kept.
+                    merged[i] = (Union(merged[i].rect, f.rect), merged[i].y, null);
                     absorbed = true;
                     break;
                 }
@@ -103,7 +104,8 @@ namespace Chorewars.Runtime
                     roomId = IdPrefix + (i + 1),
                     boundsXZ = merged[i].rect,
                     floorY = merged[i].y,
-                    wallHeight = height
+                    wallHeight = height,
+                    cornersXZ = merged[i].corners != null && merged[i].corners.Length >= 3 ? merged[i].corners : null
                 });
             }
 

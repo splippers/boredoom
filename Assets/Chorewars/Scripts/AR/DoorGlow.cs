@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using Chorewars.Diagnostics;
+using Chorewars.Runtime;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.OpenXR.Features.Meta;
@@ -29,6 +30,12 @@ namespace Chorewars.AR
         Material _material;
         readonly List<Vector3[]> _doors = new List<Vector3[]>();
         readonly List<LineRenderer> _lines = new List<LineRenderer>();
+
+        /// <summary>Where the rooms the headset's scan finds are handed on to; set once the house map exists.</summary>
+        public HouseMapDriver Driver { get; set; }
+
+        string _lastRoomsSignature;
+        readonly List<SceneSurface> _surfaces = new List<SceneSurface>();
 
         public int DoorCount => _doors.Count;
 
@@ -87,9 +94,37 @@ namespace Chorewars.AR
                 _doors.Clear();
                 _reader.ReadDoorOutlines(_doors);
                 Rebuild();
+                TakeRooms();
             }
 
             Pulse();
+        }
+
+        /// <summary>
+        /// Gives the house map the rooms from the headset's saved room scan, whenever that scan changes. The floor
+        /// outlines come through as real corners, so the outline in the room follows its true shape.
+        /// </summary>
+        void TakeRooms()
+        {
+            if (Driver == null) return;
+
+            _surfaces.Clear();
+            _reader.ReadSurfaces(_surfaces);
+            var scene = SceneRoomBuilder.Build(_surfaces);
+            if (scene.rooms.Count == 0) return;
+
+            var signature = new System.Text.StringBuilder();
+            foreach (var room in scene.rooms)
+                signature.Append(room.roomId).Append(room.boundsXZ).Append(room.wallHeight.ToString("0.00")).Append(room.cornersXZ != null ? room.cornersXZ.Length : 0).Append(';');
+            signature.Append(scene.doors.Count);
+
+            var text = signature.ToString();
+            if (text == _lastRoomsSignature) return;
+            _lastRoomsSignature = text;
+
+            SceneRoomBuilder.Publish(scene.doors);
+            Driver.AdoptSceneRooms(scene.rooms);
+            TelemetryLogger.Info("Scene", $"rooms from the headset's room scan: {scene.rooms.Count}, doorways linking them: {scene.doors.Count}");
         }
 
         void Rebuild()

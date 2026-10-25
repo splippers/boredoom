@@ -157,6 +157,7 @@ namespace Chorewars.Runtime
             scanGo.transform.SetParent(root, false);
 
             IScanSource scanSource;
+            DoorGlow doorGlow = null;
             if (Application.isEditor)
             {
                 scanSource = scanGo.AddComponent<FakeScanSource>();
@@ -164,7 +165,8 @@ namespace Chorewars.Runtime
             else
             {
                 var sceneReader = scanGo.AddComponent<SceneSurfaceReader>();
-                scanGo.AddComponent<DoorGlow>().Configure(sceneReader);
+                doorGlow = scanGo.AddComponent<DoorGlow>();
+                doorGlow.Configure(sceneReader);
                 var questScan = scanGo.AddComponent<QuestScanSource>();
                 questScan.Configure(meshTracker, sceneReader);
                 scanSource = questScan;
@@ -271,6 +273,7 @@ namespace Chorewars.Runtime
 
             var mapDriver = dollhouseGo.AddComponent<HouseMapDriver>();
             mapDriver.Configure(pipeline, mapPresenter, camera.transform);
+            if (doorGlow != null) doorGlow.Driver = mapDriver;
 
             // 7a') The rooms drawn in the real room as glowing outlines, so the player sees what the map knows.
             var outlinesGo = new GameObject("RoomOutlines");

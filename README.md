@@ -1,1402 +1,949 @@
 # BoreDOOM!
 
-> **Boring work. Glorious gameplay. Real results.**
+> **Boring jobs. Glorious gameplay.**
 
-BoreDOOM! is an experiment in turning the boring, repetitive, educational,
-and eventually useful parts of computing and everyday maintenance into an
-explorable game world.
+BoreDOOM! is a game about the things nobody particularly wants to do.
+
+Hoovering. Tidying. Sorting. Cleaning. Putting things away. Fetching things
+from another room. Looking under furniture. Clearing clutter. Finishing jobs
+that have been sitting there for weeks.
 
 The premise is simple:
 
-> **If work has to be done anyway, why shouldn't doing it be fun?**
+> **If a chore has to be done anyway, why shouldn't doing it be fun?**
 
-BoreDOOM! begins with deliberately mundane chores and IT training. It grows
-towards something much more ambitious: a playable digital twin in which real
-system problems can become missions, players can investigate them together,
-and a completed game session can produce a useful real-world report.
+BoreDOOM! turns domestic work into missions inside an explorable representation
+of the player's real environment.
 
-Gameplay is not intended to disguise work.
+The long-term ambition is for players to inhabit scanned versions of real
+rooms, homes, workshops, garages, gardens, and other spaces, then complete
+gameplay that corresponds to useful activity in the real world.
 
-The ambition is to make useful work genuinely enjoyable.
+The virtual action and the real action do not need to be identical.
 
-And however experienced the player becomes, there will always be something
-that needs hoovered.
+The important thing is that time spent playing BoreDOOM! should have a chance
+of producing something meaningful outside the game.
 
----
-
-## The player starts in 1960
-
-The starting BoreDOOM! environment is deliberately primitive.
-
-The player begins as a junior administrator in a 1960s-style Layer 7 office.
-
-There is no teleportation.
-
-There is no magical heads-up display.
-
-There is no estate-wide telemetry.
-
-There is certainly no button labelled:
-
-```text
-FIX NETWORK
-```
-
-Instead, there is:
-
-- a desk
-- a telephone
-- filing cabinets
-- paper records
-- logbooks
-- diagrams
-- basic diagnostic equipment
-- an elevator
-- comfortable shoes
-
-If something is broken somewhere else, the player has to go there.
-
-As the player's knowledge and technology improve, so does the office.
-
-Manual records become searchable.
-
-Terminals arrive.
-
-Computers appear.
-
-Remote access becomes possible.
-
-Telemetry becomes available.
-
-The Oracle becomes more capable.
-
-Transport becomes faster.
-
-Eventually the player can move around an enormous digital estate almost
-instantly.
-
-Every convenience represents an abstraction the player has learned to
-understand.
+> **Gameplay shouldn't have to mean wasted life.**
 
 ---
 
-# The OSI Tower
+## The Chore Is the Game
 
-BoreDOOM! turns the OSI model into architecture.
+BoreDOOM! should not put an arbitrary points system on top of a conventional
+to-do list.
 
-A computer or networked system can be represented as a seven-storey building.
+The chore itself should become the mission.
 
-```text
-┌─────────────────────────────────────────┐
-│ L7  APPLICATION                         │
-│     Your office                         │
-│     Applications, services, user needs  │
-├─────────────────────────────────────────┤
-│ L6  PRESENTATION                        │
-│     Representation, encoding, crypto    │
-├─────────────────────────────────────────┤
-│ L5  SESSION                             │
-│     Conversations and state             │
-├─────────────────────────────────────────┤
-│ L4  TRANSPORT                           │
-│     Connections, TCP, UDP, ports        │
-├─────────────────────────────────────────┤
-│ L3  NETWORK                             │
-│     Addressing and routing              │
-├─────────────────────────────────────────┤
-│ L2  DATA LINK                           │
-│     Local links, switching, frames      │
-├─────────────────────────────────────────┤
-│ L1  PHYSICAL                            │
-│     Physical communication              │
-└────────────────────┬────────────────────┘
-                     │
-                OUTSIDE WORLD
-```
-
-The player normally inhabits Layer 7.
-
-That is where human symptoms tend to appear:
+Instead of:
 
 ```text
-"The website isn't working."
+TASK
 
-"I can't reach the server."
+Hoover living room
 
-"The application has stopped connecting."
+[Complete]
 
-"The cloud isn't syncing."
-
-"Why is everything broken?"
++50 XP
 ```
 
-The fault may be somewhere else entirely.
+BoreDOOM! should ask:
+
+> How do we make cleaning the living room into something somebody might
+> genuinely want to play?
+
+The answer might involve:
+
+- exploration
+- navigation
+- discovery
+- collection
+- cooperation
+- time challenges
+- problem solving
+- unusual perspectives
+- tools
+- vehicles
+- characters
+- procedural objectives
+- environmental changes
+- ridiculous amounts of unnecessary drama
+
+The boring task supplies the purpose.
+
+The game supplies the fun.
 
 ---
 
-# The Elevator
+## The Real World Is the Level
 
-The elevator is one of BoreDOOM!'s fundamental teaching mechanics.
+A BoreDOOM! environment can be based on a representation of a real space.
 
-A beginner experiencing a network problem does not simply select:
-
-```text
-GO TO FAULT
-```
-
-They investigate.
+For example:
 
 ```text
-Layer 7
-   |
-   v
-Layer 6
-   |
-   v
-Layer 5
-   |
-   v
-Layer 4
-   |
-   v
-Layer 3
-   |
-   v
-Layer 2
-   |
-   v
-Layer 1
+REAL ROOM
+    |
+    v
+SCAN / MODEL
+    |
+    v
+BOREDOOM! WORLD
+    |
+    v
+MISSIONS
 ```
 
-Each floor can provide evidence about what is happening there.
+A player's actual:
 
-The player gradually learns how problems at lower levels affect everything
-above them.
+```text
+Living room
+Bedroom
+Kitchen
+Office
+Workshop
+Garage
+Garden
+```
+
+can become somewhere they explore inside the game.
+
+The virtual environment does not need to reproduce every detail perfectly.
+
+It needs to remain recognisable enough that locations, objects, and jobs have
+a meaningful relationship with the real world.
 
 ---
 
-# The Unplugged Cable
+# Human Scale
 
-One of the earliest tutorial faults should be magnificently simple.
+At human scale, the world resembles the actual room.
 
-The user reports:
+The player can navigate familiar spaces and receive missions corresponding to
+real domestic work.
 
-> **The application in the other office isn't working.**
-
-The player begins at Layer 7.
-
-The effect is visible throughout the stack:
+Examples might include:
 
 ```text
-L7  Application unavailable
- ↑
-L6  Communication unavailable
- ↑
-L5  Session cannot establish
- ↑
-L4  Transport cannot connect
- ↑
-L3  Network unavailable
- ↑
-L2  No working link
- ↑
-L1  FAULT: PHYSICAL CONNECTION LOST
+Clear the floor
+Sort the desk
+Put tools away
+Collect rubbish
+Find misplaced objects
+Tidy a shelf
+Organise a drawer
+Clean an area
+Inspect something requiring maintenance
+Hoover the room
 ```
 
-The player rides downward through the affected tower.
+The presentation can be ludicrous.
 
-Eventually the elevator reaches Layer 1.
-
-**DING.**
-
-The cable is unplugged.
-
-The beginner has just learnt something fundamental:
-
-> **Where a problem is experienced is not necessarily where the problem
-> originates.**
-
-Once the connection is restored, health can propagate upwards through the
-tower:
-
-```text
-L1  CONNECTED
-      ↑
-L2  LINK AVAILABLE
-      ↑
-L3  NETWORK AVAILABLE
-      ↑
-L4  TRANSPORT AVAILABLE
-      ↑
-L5  SESSION ESTABLISHED
-      ↑
-L6  DATA UNDERSTOOD
-      ↑
-L7  APPLICATION WORKING
-```
-
-A conceptual model has become a physical experience.
+The underlying job can remain useful.
 
 ---
 
-# Layer 1 Is the Outside World
+# Borrower Scale
 
-Layer 1 is where machines meet reality.
+BoreDOOM! should allow some players to experience the same environment at a
+radically smaller scale.
 
-When the player reaches the bottom of an OSI Tower, they may have to leave the
-building and physically travel to another system.
-
-Early in the game:
+At "Borrower" scale:
 
 ```text
-SOURCE OFFICE
-     |
-     v
-SOURCE OSI TOWER
-     |
-     v
-LAYER 1
-     |
-     v
-WALK
-     |
-     v
-DESTINATION LAYER 1
-     |
-     v
-DESTINATION OSI TOWER
-     |
-     v
-DESTINATION OFFICE
+Carpet fibres       -> vegetation
+Cable               -> bridge
+Chair leg           -> tower
+Desk                -> plateau
+Bookshelf           -> cliff
+Storage box         -> building
+PC                   -> industrial complex
+Server rack          -> megastructure
+Room                 -> enormous landscape
 ```
 
-The journey teaches the player that communication is not magic.
+The real room has not changed.
 
-Information has to move.
+The player's relationship to it has.
+
+This creates an opportunity to turn extremely ordinary household environments
+into enormous explorable worlds without inventing an entirely fictional map.
 
 ---
 
-# Technology Is Compressed Distance
+# Asymmetric Multiplayer
 
-Character progression in BoreDOOM! should not primarily consist of numerical
+Human-scale and Borrower-scale players can inhabit the same underlying space.
+
+They should not necessarily have identical abilities.
+
+The scale difference can create cooperative gameplay.
+
+For example:
+
+```text
+HUMAN PLAYER
+
+Can:
+- cross the room quickly
+- move large objects
+- reach furniture
+- operate ordinary equipment
+
+Cannot easily:
+- explore tiny spaces
+- see under or behind everything
+- navigate miniature routes
+
+
+BORROWER PLAYER
+
+Can:
+- explore tiny spaces
+- travel beneath furniture
+- examine clutter closely
+- navigate cables and structures
+- discover things hidden from the human-scale player
+
+Cannot easily:
+- move large objects
+- cross huge distances
+- reach elevated areas without assistance
+```
+
+The aim is not to make one player powerful and the other weak.
+
+The aim is to make cooperation useful.
+
+---
+
+# The Human Is Part of the Landscape
+
+A human-scale player can potentially affect the world experienced by miniature
+players.
+
+Moving a chair might completely change Borrower geography.
+
+Lifting a box might reveal an unexplored region.
+
+Running the hoover might become a major environmental event.
+
+A job that appears mundane at human scale can therefore become dramatic at
+Borrower scale.
+
+```text
+Human view:
+
+"Move the chair."
+
+
+Borrower view:
+
+"THE WESTERN MOUNTAIN IS MOVING."
+```
+
+That contrast is central to BoreDOOM!'s personality.
+
+---
+
+# Procedural Chores
+
+BoreDOOM! should not depend entirely on handcrafted levels.
+
+The real environment can provide the structure while jobs and gameplay are
+generated around it.
+
+A room can support many sessions because:
+
+- objects move
+- chores change
+- players choose different approaches
+- multiplayer changes the experience
+- new jobs appear
+- the real room itself changes
+
+The game should become better at understanding:
+
+```text
+where things are
+what areas exist
+what needs attention
+what has changed
+what jobs are available
+what the player has already dealt with
+```
+
+The real home becomes an evolving game world.
+
+---
+
+# Chore Classes
+
+Not every task needs the same gameplay mechanics.
+
+Possible mission families include:
+
+## Cleaning
+
+```text
+Hoovering
+Dusting
+Wiping
+Sweeping
+Clearing surfaces
+```
+
+## Tidying
+
+```text
+Putting objects away
+Clearing floors
+Organising spaces
+Returning items to their proper locations
+```
+
+## Sorting
+
+```text
+Keep
+Move
+Store
+Review
+Donate
+Recycle
+Dispose
+```
+
+## Searching
+
+```text
+Find missing object
+Locate clutter
+Inspect hidden spaces
+Find everything belonging to a category
+```
+
+## Maintenance
+
+```text
+Check equipment
+Inspect damage
+Replace consumables
+Perform routine upkeep
+Document an issue
+```
+
+## Organisation
+
+```text
+Sort shelf
+Organise drawer
+Arrange tools
+Group related objects
+Create usable storage
+```
+
+Different jobs should produce different styles of gameplay rather than
+becoming reskinned fetch quests.
+
+---
+
+# The Hoover Is Sacred
+
+BoreDOOM! should never become so grand that ordinary chores disappear.
+
+Progression must not imply:
+
+> **You are now too important to clean.**
+
+The most experienced player in the game can still receive:
+
+```text
+MISSION
+
+HOOVER THE OFFICE
+```
+
+They may own fantastic equipment.
+
+They may have completed hundreds of missions.
+
+They may be surrounded by less experienced players.
+
+They still have to hoover.
+
+That is not a joke bolted onto the game.
+
+It is one of BoreDOOM!'s core principles:
+
+> **Expertise does not abolish maintenance.**
+
+---
+
+# Progression
+
+BoreDOOM! progression should reward useful participation without turning
+housework into a soulless productivity points system.
+
+Potential progression can involve:
+
+- better equipment
+- faster movement
+- new areas
+- new mission types
+- better navigation
+- additional tools
+- team abilities
+- cosmetic rewards
+- unusual vehicles
+- environmental abilities
+- improved information
+- greater autonomy
+
+Progression should make gameplay richer rather than simply inflate numerical
 statistics.
 
-The player earns better technology.
-
-Early:
-
-```text
-Walk.
-```
-
-Later:
-
-```text
-Run.
-```
-
-Then:
-
-```text
-Bicycle.
-```
-
-Then:
-
-```text
-Car.
-Bus.
-Train.
-High-speed rail.
-Aircraft.
-Remote terminal.
-Remote presence.
-Teleportation.
-```
-
-The precise mapping between game transport and technical media can evolve with
-the game.
-
-The principle remains:
-
-> **The more the player understands, the less time they need to spend on
-> mechanics they have already mastered.**
-
 ---
 
-# Technology Progression
+# Equipment
 
-A possible progression is:
+Domestic tools can become game equipment.
 
-```text
-WALK
-  |
-  v
-RUN
-  |
-  v
-BICYCLE
-  |
-  v
-MOTORCYCLE
-  |
-  v
-CAR
-  |
-  v
-SERVICE VAN
-  |
-  v
-BUS
-  |
-  v
-TRAIN
-  |
-  v
-HIGH-SPEED RAIL
-  |
-  v
-AIRCRAFT
-  |
-  v
-REMOTE TERMINAL
-  |
-  v
-REMOTE CONSOLE
-  |
-  v
-REMOTE PRESENCE
-  |
-  v
-LAYER JUMP
-  |
-  v
-SYSTEM TELEPORT
-  |
-  v
-INCIDENT TELEPORT
-```
-
-Progression represents increasing abstraction.
-
-The beginner has to travel.
-
-The experienced administrator knows where to go.
-
----
-
-# Teleportation Must Be Earned
-
-Teleportation is not simply fast travel.
-
-It represents expertise.
-
-A beginner encountering a problem may need to inspect the entire stack.
-
-An experienced administrator may examine the evidence and say:
-
-> **That's Layer 3.**
-
-At sufficiently advanced progression:
+For example:
 
 ```text
-TELEPORT
-    |
-    v
-EDDIE
-    |
-    v
-LAYER 3
-```
-
-The shortcut has been earned through understanding.
-
-Teleportation should still respect evidence, permissions, and available
-infrastructure.
-
-If remote access is unavailable, telemetry is missing, or the route itself is
-part of the problem, teleportation may fail.
-
-Then the game hands the experienced administrator:
-
-```text
+Hoover
+Brush
+Mop
+Duster
+Grabber
 Torch
-Clipboard
-Cable tester
-Car keys
+Storage container
+Toolbox
+Trolley
+Ladder
+Bin bag
+Label maker
 ```
 
-Back to Layer 1.
+At Borrower scale these tools can become enormous machines.
+
+At human scale they remain glorified household equipment.
+
+That contrast should be embraced.
 
 ---
 
-# The Office Evolves With the Player
+# Vehicles
 
-The Layer 7 office acts as a physical representation of progress.
+Large environments and Borrower-scale worlds create opportunities for
+transport.
 
-## Early office
-
-```text
-1960s
-├── Filing cabinets
-├── Paper logs
-├── Wall diagrams
-├── Rotary telephone
-├── Teletype
-└── Clipboard
-```
-
-## Developing office
+Potential vehicles might include:
 
 ```text
-1970s / 1980s-inspired
-├── Terminals
-├── Electronic records
-├── Better communications
-├── Local diagnostics
-└── Early computer systems
+Bicycle
+Trolley
+Tiny service van
+RC vehicle
+Utility cart
+Lift
+Cable transport
+Improvised vehicle
 ```
 
-## Network operations
-
-```text
-├── Multiple displays
-├── Network maps
-├── Remote terminals
-├── Event feeds
-├── System status
-└── Incident management
-```
-
-## Mature VNA environment
-
-```text
-├── Live digital twin
-├── Cross-system telemetry
-├── Historical state
-├── AI Oracles
-├── FileCity
-├── Spatial incident mapping
-└── Teleportation
-```
-
-The office tells the story of technological progress without requiring a
-conventional skill-level number to do all the work.
+Vehicles should arise because moving around the world is interesting or useful,
+not simply because a game is expected to contain vehicles.
 
 ---
 
-# The Oracle
+# Chores as Cooperative Work
 
-BoreDOOM! can use AI assistants as **Oracles**.
+Multiplayer should reward players for genuinely helping one another.
 
-The Oracle should help the player reason about evidence rather than simply
-solve the mission.
-
-Oracle capability can itself progress.
-
-## Beginner Oracle
+A cleaning mission might involve:
 
 ```text
-"Layer 1 does not appear healthy.
-You may want to investigate the physical connection."
+Scout
+    |
+    v
+Identify problem areas
+    |
+    v
+Human moves obstacles
+    |
+    v
+Borrower inspects newly exposed space
+    |
+    v
+Team plans work
+    |
+    v
+Chore completed
 ```
 
-## Intermediate Oracle
+The game should understand collective success.
 
-```text
-"Layers 1 and 2 appear healthy.
-Where would you investigate next?"
-```
-
-## Advanced Oracle
-
-```text
-Evidence:
-
-- interface: link up
-- route: present
-- connection attempts: timeout
-- service state: available
-
-What conclusion do you draw?
-```
-
-## Expert
-
-The administrator gets the evidence.
-
-The Oracle waits to be asked.
-
-Difficulty therefore does not require inventing increasingly ridiculous
-faults.
-
-A difficult mission may simply provide less interpretation.
+It should not encourage four players to race independently for personal XP
+while ignoring the job.
 
 ---
 
-# T4: Explain the Same Truth Differently
+# Reporting
 
-Telemetry4Toddlers and its wider T4 family can provide explanations appropriate
-to different players.
-
-The same observation can support:
-
-```text
-T4Tots
-
-"The computers can't talk because their connection is broken."
-
-
-T4Teens
-
-"The physical network connection is down, so the higher network layers cannot
-communicate."
-
-
-T4Techies
-
-[technical evidence, interfaces, state, logs and measurements]
-```
-
-The explanation changes.
-
-Reality does not.
-
----
-
-# Operating-System Worlds
-
-The OSI Tower provides a shared communications model, but operating systems
-have their own internal worlds.
-
-BoreDOOM! can eventually turn these into explorable environments.
-
-## Windows World
-
-Possible environments include:
-
-```text
-Services
-Event logs
-Registry
-Updates
-Drivers
-Boot configuration
-Storage
-PowerShell
-```
-
-## Linux World
-
-Possible environments include:
-
-```text
-systemd
-journal
-kernel
-packages
-mounts
-filesystems
-shell
-configuration
-```
-
-## macOS World
-
-Possible environments include:
-
-```text
-Unified logging
-launchd
-volumes
-APFS
-recovery
-system configuration
-security
-```
-
-The player should gradually learn that different operating systems often solve
-related problems through different mechanisms.
-
-Expertise is the ability to recognise the underlying concept despite the
-different scenery.
-
----
-
-# The Real Room
-
-BoreDOOM! can also represent scanned real environments.
-
-A room, office, workshop, server room, or other physical environment can become
-a game level.
-
-Different players may experience the same environment at radically different
-scales.
-
----
-
-# Human and Borrower Scale
-
-One player might experience the room at approximately human scale.
-
-Another player may experience it at "Borrower" scale.
-
-For a miniature player:
-
-```text
-Desk       -> landscape
-Cable      -> bridge
-Server     -> enormous structure
-PC         -> building
-Rack       -> tower complex
-Floor      -> terrain
-```
-
-The two players inhabit the same world but experience radically different
-geographies.
-
-This creates opportunities for asymmetric cooperative gameplay.
-
-A human-scale player may be able to reach physical equipment easily.
-
-A miniature player may be able to investigate representations of internal
-systems and data that would be inaccessible at human scale.
-
----
-
-# Boring Chores Still Matter
-
-BoreDOOM! must retain its original purpose.
-
-Not every mission is:
-
-```text
-CRITICAL INFRASTRUCTURE INCIDENT
-```
-
-Sometimes the mission is:
-
-```text
-Hoover the office.
-```
-
-Or:
-
-```text
-Put the equipment away.
-```
-
-Or:
-
-```text
-Sort the workshop.
-```
-
-Or:
-
-```text
-Document what you just changed.
-```
-
-The game should deliberately refuse the idea that seniority makes ordinary
-maintenance beneath someone.
-
-A legendary administrator with every teleportation ability unlocked can still
-receive:
-
-> **MISSION: Hoover Layer 7.**
-
-Maintenance is part of engineering.
-
----
-
-# FileCity
-
-FileCity can eventually become an explorable data landscape within BoreDOOM!.
-
-Storage becomes geography:
-
-```text
-Storage location -> District
-Folder           -> Building
-Subfolder        -> Floor or section
-Capacity         -> Scale
-Transfer         -> Traffic
-```
-
-Physical storage can occupy the ground.
-
-Cloud storage can occupy the sky.
-
-Movement can become visible:
-
-```text
-Ground -> Cloud      Rocket
-Cloud -> Ground      Parachute
-Ground -> Ground     Freight
-Cloud -> Cloud       Air transport
-```
-
-These are playful representations of real or simulated storage operations.
-
----
-
-# Charkive City Services
-
-Charkive provides the storage-health and preservation layer.
-
-Within BoreDOOM! or FileCity it can become:
-
-```text
-Sanitation Department
-Police Department
-Fire Department
-Archaeology Service
-SANitorium
-```
-
-Possible missions include:
-
-- investigate storage pressure
-- quarantine likely disposable data
-- restore quarantined material
-- investigate anomalies
-- conduct archaeological surveys
-- inspect Temporal Anomalies
-- protect historically interesting collections
-
-The visual metaphor must lead back to the actual finding and evidence.
-
----
-
-# Data Archaeology
-
-Not every mission should fix something.
-
-Some should discover something.
-
-Charkive may identify patterns of historical user activity within old storage.
-
-BoreDOOM! can turn those findings into archaeological missions.
-
-The player might explore an abandoned FileCity district and discover:
-
-- old projects
-- photographs
-- document collections
-- forgotten archives
-- related historical material
-- evidence of badly recorded dates
-
-The mission ends not with destruction but with a report:
-
-```text
-Potential historical collection discovered.
-Human review recommended.
-```
-
----
-
-# TEMPORAL ANOMALY
-
-A Charkive **TEMPORAL ANOMALY (TA)** occurs where recorded timestamps appear
-inconsistent with the surrounding evidence.
-
-Within BoreDOOM!, a TA might appear as:
-
-```text
-A district that exists in the wrong historical era.
-
-A building whose records claim it predates the city.
-
-A set of photographs stranded on the wrong timeline.
-
-A clock tower showing the wrong year.
-```
-
-The visual metaphor represents uncertainty.
-
-The objective is to investigate the evidence.
-
-The player may conclude:
-
-> The device clock was probably wrong.
-
-The original metadata remains evidence and should not be silently rewritten.
-
-The gameplay result can become an annotation or recommendation rather than a
-filesystem modification.
-
----
-
-# SysMedic
-
-SysMedic provides a bridge between BoreDOOM! and machines that are not
-permanently connected to VNA.
-
-A running or offline computer can produce diagnostic evidence.
-
-Conceptually:
-
-```text
-Real machine
-     |
-     v
-SysMedic
-     |
-     v
-Encrypted snapshot
-     |
-     v
-Analysis
-     |
-     v
-Findings
-     |
-     v
-VNA
-     |
-     v
-Generalised world
-     |
-     v
-BoreDOOM! mission
-```
-
-This creates the possibility of generating a playable scenario from a real
-computer problem without giving the game direct control of that computer.
-
----
-
-# Virtual Network Admin
-
-VNA provides the wider reality model.
-
-Its job is to understand real or simulated infrastructure.
-
-BoreDOOM!'s job is to turn suitable parts of that model into an experience.
-
-```text
-REAL SYSTEMS
-     |
-     v
-    VNA
-     |
-     v
-GENERALISATION
-     |
-     v
-BOREDOOM!
-```
-
-BoreDOOM! should not become the authoritative source of infrastructure state.
-
-It is an interface to that state.
-
----
-
-# Procedural Worlds
-
-BoreDOOM! should support several kinds of world.
-
-## Tutorial World
-
-Handcrafted.
-
-Designed to teach concepts clearly.
-
-The 1960s office and first OSI Tower belong here.
-
-## Synthetic World
-
-Generated from deliberately simulated problems.
-
-Useful for practice and assessment.
-
-## Snapshot World
-
-Generated from captured evidence from a real system.
-
-For example, a SysMedic snapshot may produce a scenario based on an actual
-machine.
-
-## Live World
-
-Eventually generated from authorised VNA telemetry.
-
-The world reflects current infrastructure state.
-
-These different sources must remain distinguishable.
-
-A synthetic training scenario must never be presented as a live production
-problem.
-
----
-
-# Multiplayer Mini
-
-BoreDOOM! can eventually allow real teams to investigate shared scenarios.
-
-Potential roles include:
-
-```text
-Network engineer
-Systems administrator
-Storage engineer
-Field engineer
-Archivist
-Incident coordinator
-Trainee
-```
-
-These are responsibilities, not fantasy character classes.
-
-Players might:
-
-- divide investigations
-- inspect different OSI layers
-- visit different systems
-- share evidence
-- consult Oracles
-- propose diagnoses
-- review one another's conclusions
-- produce a joint report
-
----
-
-# Scoring
-
-BoreDOOM! should not reward reckless speed.
-
-Possible scoring dimensions include:
-
-```text
-Diagnostic accuracy
-Quality of evidence
-Safety
-Communication
-Documentation
-Correct escalation
-Unnecessary intervention avoided
-Successful verification
-Teamwork
-```
-
-A player who restarts everything until the problem disappears should not beat
-a player who correctly identifies the root cause.
-
----
-
-# Game Achievements and Professional Evidence
-
-BoreDOOM! can have ridiculous achievements.
+A BoreDOOM! session can eventually produce a useful summary.
 
 For example:
 
 ```text
-Storage Fire Marshal
-Layer 1 Detective
-SANitorium Porter
-Temporal Archaeologist
-Hoovering Under Pressure
-```
+SESSION COMPLETE
 
-These are game achievements.
+Area:
+Office
 
-Professional assessment is different.
+Jobs investigated:
+- Floor clutter
+- Desk organisation
+- Hoovering
 
-A future assessment mode could record structured evidence that a player
-successfully demonstrated particular skills under controlled conditions.
+Completed:
+- Floor cleared
+- Desk sorted
 
-Game scores and verified competence should remain distinct.
+Still to do:
+- Hoover beneath shelving
 
----
-
-# Vendor Worlds
-
-Hardware and software vendors may eventually provide authoritative virtual
-equipment.
-
-A vendor package might contribute:
-
-```text
-3D equipment
-Component locations
-Interfaces
-Telemetry definitions
-Firmware simulation
-Normal behaviour
-Failure scenarios
-Approved procedures
-Assessment criteria
-```
-
-This could allow players to gain practical familiarity with equipment they
-cannot physically access.
-
-The same equipment might eventually appear in:
-
-- synthetic training scenarios
-- captured SysMedic scenarios
-- authorised live VNA environments
-
----
-
-# Gameplay and Reality
-
-BoreDOOM! begins as a read-only or symbolic representation.
-
-Completing a mission does not automatically mean a real system was changed.
-
-Initial flow:
-
-```text
-REAL OR SIMULATED FINDING
-          |
-          v
-      GAME MISSION
-          |
-          v
- PLAYER INVESTIGATION
-          |
-          v
-      CONCLUSION
-          |
-          v
-     SESSION REPORT
-```
-
-If controlled real-world operations are ever introduced, they belong behind a
-separate authority boundary:
-
-```text
-PLAYER REQUEST
-      |
-      v
-PROPOSED ACTION
-      |
-      v
-VALIDATION
-      |
-      v
-AUTHORISATION
-      |
-      v
-EXECUTION
-      |
-      v
-VERIFICATION
-      |
-      v
-AUDIT
-```
-
-Gameplay is not authorisation.
-
----
-
-# The Report Is the Product
-
-A useful BoreDOOM! session should be capable of ending with something more
-valuable than a score.
-
-For example:
-
-```text
-MISSION COMPLETE
-
-Source:
-Real / Synthetic / Snapshot / Live
-
-Problem:
-[identified condition]
-
-Evidence examined:
-[recorded evidence]
-
-Diagnosis:
-[player conclusion]
-
-Confidence:
-[assessment]
-
-Recommended action:
-[recommendation]
+Notes:
+[optional]
 
 Real-world changes:
-NONE
-
-Escalation:
-[if required]
+[user-confirmed]
 ```
 
-If the mission represents a real issue, that report can become useful real
-work.
+This is deliberately modest.
 
-The game has not wasted the player's time.
+A report does not need to prove that the game itself moved a real chair.
+
+It records what the session represented and, where appropriate, what the
+players confirm was actually accomplished.
+
+---
+
+# Symbolic Versus Real Actions
+
+BoreDOOM! must distinguish between actions performed in the virtual world and
+actions completed in reality.
+
+A player pressing:
+
+```text
+HOOVER
+```
+
+inside VR does not magically clean the real carpet.
+
+The game should not pretend otherwise.
+
+Instead, a mission may:
+
+- guide a real activity
+- accompany an activity
+- represent work being performed
+- help coordinate several people
+- record user-confirmed completion
+- create a useful plan
+- produce a report
+
+This distinction becomes particularly important when BoreDOOM! is used by
+other projects.
+
+---
+
+# Privacy
+
+A scanned home is sensitive information.
+
+BoreDOOM! should therefore be designed with the assumption that players may
+not want to expose:
+
+- exact room geometry
+- photographs
+- possessions
+- addresses
+- personal information
+- object labels
+- other household details
+
+Future multiplayer and sharing systems should support generalisation where
+possible.
+
+A private room might become:
+
+```text
+Living Space A
+Work Area B
+Storage Zone C
+```
+
+while preserving the geometry or information required for gameplay.
+
+The player should remain in control of what leaves the local environment.
+
+---
+
+# The Base Game
+
+BoreDOOM! should have a handcrafted base game.
+
+This serves several purposes:
+
+- tutorial
+- demonstration
+- safe environment
+- testing
+- onboarding
+- gameplay independent of room scanning
+- a shared experience between players
+
+The base game can teach mechanics before the player introduces their own home.
+
+It should also preserve the game's sense of humour.
+
+The tutorial does not need to begin with an epic battle.
+
+It can begin with:
+
+> **This room is a tip. Sort it out.**
+
+---
+
+# Relationship With VNA
+
+BoreDOOM! is fundamentally a domestic chore game.
+
+Virtual Network Admin (VNA) is a separate project applying related gameplay
+ideas to IT learning, diagnostics, administration, and infrastructure.
+
+The relationship is therefore:
+
+```text
+BoreDOOM!
+    |
+    | gameplay ideas
+    | spatial interaction
+    | missions
+    | multiplayer
+    | progression
+    | reporting
+    v
+   VNA
+    |
+    v
+Playable IT administration
+```
+
+The larger VNA vision includes ideas such as:
+
+- explorable networking concepts
+- operating-system environments
+- real diagnostic evidence
+- infrastructure simulation
+- specialist training
+- interactive troubleshooting
+- vendor equipment
+- real-world administrative reports
+
+Those belong primarily to VNA.
+
+BoreDOOM! should not become an IT administration product merely because the
+same gameplay philosophy works there.
+
+---
+
+# Relationship With FileCity
+
+FileCity can potentially become a specialised explorable environment reached
+through the wider VNA ecosystem.
+
+BoreDOOM! does not need to understand storage APIs or migration logic.
+
+Instead, it can provide interaction and gameplay concepts that another system
+uses to create an explorable world.
+
+---
+
+# Relationship With Charkive
+
+Charkive is responsible for storage hygiene, preservation, investigation, and
+data archaeology.
+
+BoreDOOM! may eventually provide a playful interface to selected Charkive
+activities through VNA.
+
+For example, a real Charkive finding could become:
+
+```text
+Investigation mission
+Preservation mission
+Sanitation mission
+Archaeological mission
+```
+
+The finding remains Charkive's.
+
+The gameplay belongs to the interactive world.
+
+---
+
+# Relationship With SysMedic
+
+SysMedic collects and analyses diagnostic evidence from real computers.
+
+BoreDOOM! does not need to collect that evidence itself.
+
+Within a future VNA integration, SysMedic evidence may contribute to gameplay
+scenarios representing real computer problems.
+
+Again, this is a VNA concern rather than BoreDOOM!'s core domestic identity.
+
+---
+
+# Relationship With T4
+
+Telemetry4Toddlers and the wider T4 family can help VNA explain technical
+systems at different skill levels.
+
+BoreDOOM! may share the broader principle:
+
+> **Explain the same reality differently depending on who is playing.**
+
+A child, adult, expert, or novice can inhabit the same world without requiring
+identical explanations or assistance.
+
+---
+
+# A Shared Gameplay Language
+
+The wider project family can reuse BoreDOOM! concepts without forcing every
+project into the BoreDOOM! repo.
+
+Useful shared ideas include:
+
+```text
+World
+Player
+Mission
+Objective
+Interaction
+Tool
+Vehicle
+Progression
+Multiplayer
+Scale
+Evidence
+Result
+Report
+```
+
+BoreDOOM! is where these ideas are first explored through domestic chores.
+
+Other projects may apply them to entirely different domains.
 
 ---
 
 # First Playable Slice
 
-The first BoreDOOM! implementation should be deliberately small.
+The first BoreDOOM! slice should remain aggressively small.
 
-Do not begin with FileCity, live VNA, procedural corporate estates, cloud
-rockets, AI Oracles, vendor equipment, or teleportation.
+Do not begin with:
 
-Build:
+- VNA
+- FileCity
+- Charkive
+- live infrastructure
+- AI administration
+- vendor worlds
+- the OSI model
+- enterprise multiplayer
+
+Begin with:
 
 ```text
-1960s Layer 7 office
-        |
-        v
-Seven-floor OSI Tower
-        |
-        v
-Working elevator
-        |
-        v
-Layer 1 exit
-        |
-        v
-Walk through physical world
-        |
-        v
-Second OSI Tower
-        |
-        v
-Reach destination Layer 7
+ONE ROOM
+    |
+    v
+TWO PLAYER SCALES
+    |
+    v
+ONE BORING CHORE
+    |
+    v
+ONE GAMEPLAY LOOP
+    |
+    v
+ONE SESSION REPORT
 ```
 
-## Mission 1
+For example:
 
-The application in the other office is unavailable.
+```text
+Room:
+Office
 
-The player investigates.
+Human-scale objective:
+Clear objects from the floor.
 
-The cause is:
+Borrower-scale objective:
+Explore beneath furniture and identify hidden clutter.
 
-> **An unplugged cable at Layer 1.**
+Shared objective:
+Prepare the room for hoovering.
 
-The player restores the connection symbolically.
+Final mission:
+Hoover the bloody carpet.
+```
 
-The tower recovers upwards from Layer 1.
+If that is fun, BoreDOOM! works.
 
-The player returns to the office.
-
-A report is completed.
-
-### Success Criterion
-
-The player should finish the mission understanding:
-
-> **A symptom can appear at Layer 7 even when the root cause is at Layer 1.**
-
-No lecture is required.
-
-They experienced it.
+Everything else can grow from it.
 
 ---
 
-# Mission 2
+# Success Criteria
 
-Begin exactly like Mission 1.
+The first meaningful BoreDOOM! prototype should demonstrate that:
 
-The application does not work.
+1. A real or realistically scanned room can form the basis of a level.
+2. Human and Borrower-scale players experience that space differently.
+3. The scale difference creates useful cooperative gameplay.
+4. A mundane chore can become an enjoyable objective.
+5. The game can record what the session attempted and what the user says was
+   achieved.
 
-The player confidently travels to Layer 1.
+Graphics can improve later.
 
-The cable is connected.
+Content can grow later.
 
-Nothing is wrong there.
+The key question is:
 
-Welcome to troubleshooting.
-
----
-
-# Long-Term Technology Progression
-
-The overall progression should feel approximately like:
-
-```text
-1960s OFFICE
-     |
-     v
-WALK EVERYWHERE
-     |
-     v
-BASIC TOOLS
-     |
-     v
-BICYCLE / BUS
-     |
-     v
-CAR / SERVICE VAN
-     |
-     v
-TERMINALS
-     |
-     v
-NETWORK OPERATIONS
-     |
-     v
-REMOTE ACCESS
-     |
-     v
-WINDOWS / LINUX / macOS MASTERY
-     |
-     v
-LIVE TELEMETRY
-     |
-     v
-T4 + ORACLE
-     |
-     v
-FILECITY
-     |
-     v
-VNA DIGITAL TWIN
-     |
-     v
-LAYER JUMP
-     |
-     v
-SYSTEM TELEPORT
-     |
-     v
-MULTIPLAYER MINI
-```
-
-Progression is not:
-
-```text
-GRIND
-  |
-  v
-BIGGER NUMBER
-```
-
-It is:
-
-```text
-UNDERSTANDING
-     |
-     v
-TRUST
-     |
-     v
-BETTER TOOLS
-     |
-     v
-FASTER MOVEMENT
-     |
-     v
-GREATER RESPONSIBILITY
-```
+> **Did making it into a game make somebody more willing to do the boring
+> thing?**
 
 ---
 
-# Public Language Goal
+# Non-Goals
 
-BoreDOOM! should make technical language useful enough that players adopt it
-naturally.
+BoreDOOM! itself should not become:
 
-A player should eventually understand statements such as:
+- a network-management system
+- an operating-system simulator
+- a storage manager
+- a filesystem cleaner
+- a device-repair toolkit
+- an infrastructure monitoring platform
+- an enterprise digital twin
+- the authoritative source of real-world system state
 
-```text
-"Layer 1 is down."
+Those responsibilities belong to other projects.
 
-"Layer 2 looks healthy."
+BoreDOOM!'s domain is:
 
-"This smells like Layer 3."
-
-"Layer 4 can't reach the service."
-
-"Layer 7 is where we're seeing the symptom."
-```
-
-The ambition is not to make players memorise seven definitions for an exam.
-
-It is to make them experience the stack often enough that the terminology
-becomes ordinary language.
-
-The OSI model should become something players have:
-
-- walked through
-- ridden through
-- diagnosed
-- repaired
-- become stranded inside
-- argued about
-- eventually learnt to teleport through
+> **turning boring real-world activity into engaging spatial gameplay.**
 
 ---
 
-# Design Rule
+# Design Principles
 
-> **Never teach through a diagram when the player could experience the diagram.**
+## 1. The Chore Matters
 
-If the concept is distance, make them travel.
+Gameplay should remain connected to something useful.
 
-If the concept is bandwidth, give the route capacity.
+## 2. Fun Comes First
 
-If the concept is congestion, let them encounter traffic.
+If the chore is still miserable after being gamified, BoreDOOM! has failed.
 
-If the concept is a dependency, let its failure affect everything above it.
+## 3. The Game Must Not Lie
 
-If the concept is abstraction, let expertise remove repetition.
+Symbolic completion is not automatically real-world completion.
 
-If the concept is maintenance, hand them the hoover.
+## 4. Scale Creates Gameplay
+
+Human and Borrower perspectives should create genuinely different experiences.
+
+## 5. Cooperation Beats Grinding
+
+Players should benefit from working together rather than competing for
+meaningless XP.
+
+## 6. Progression Unlocks Possibility
+
+Better equipment and abilities should change how the world can be approached.
+
+## 7. The Real Environment Is Valuable
+
+A familiar room can become more interesting than a fictional dungeon when the
+game gives the player a reason to see it differently.
+
+## 8. Maintenance Never Disappears
+
+There is no level at which the player becomes too important to tidy up.
 
 ---
 
-# North Star
+# Long-Term Vision
 
-BoreDOOM! succeeds when somebody puts on a headset because they want to play a
-game and takes it off having:
+BoreDOOM! begins with one stupidly simple idea:
 
-- understood something better
-- investigated something real
-- completed something useful
-- or learned how computers actually fit together
+> **Can we make hoovering fun?**
 
-The player begins in a 1960s office with a clipboard.
+That grows into:
 
-They have to walk everywhere.
+> **Can we make boring real-world work feel like a game without making the
+> work meaningless?**
 
-They ride elevators through the OSI model.
+A player might eventually scan their home and create a persistent game world.
 
-They travel between machines.
+The living room becomes a landscape.
 
-They inspect logs.
+The garage becomes an expedition.
 
-They learn operating systems.
+The workshop becomes a cooperative maintenance zone.
 
-They acquire tools.
+Under the sofa becomes Borrower territory.
 
-They gain remote access.
+Routine jobs become missions.
 
-They meet Oracles.
+Friends or family can join.
 
-They explore FileCity.
+Somebody works at human scale.
 
-They respond to Charkive incidents.
+Somebody else disappears beneath the desk on a miniature vehicle.
 
-They diagnose captured SysMedic machines.
+The environment changes as real life changes.
 
-They collaborate on VNA estates.
+The game generates new reasons to explore it.
 
-Eventually they earn the ability to teleport directly to the problem.
+And when the session finishes, something outside the headset is hopefully a
+little better than it was before.
 
-But expertise never exempts them from reality.
+Meanwhile, the same basic philosophy can power specialised projects such as
+VNA, where the boring work is not domestic cleaning but IT administration.
 
-Sometimes remote access fails.
+BoreDOOM! does not need to own those worlds.
 
-Sometimes the Oracle is wrong.
+It only needs to prove the fundamental idea:
 
-Sometimes the cable is unplugged.
+> **Useful work can be play.**
 
-And sometimes the most senior administrator in the building still has to
-hoover the bloody office.
+## North Star
 
-> **Boring work. Glorious gameplay. Real results.**
+You put on the headset because you want to play.
+
+You take it off and discover that, somehow, the boring job got done.
+
+And regardless of your rank, equipment, achievements, vehicles, or heroic
+reputation:
+
+> **There's always something that needs hoovered.**
+
+**Boring jobs. Glorious gameplay.**

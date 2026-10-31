@@ -30,6 +30,17 @@ namespace Chorewars.AR
         private float _lastFloorY = float.NaN;
         private bool _floorSet;
         private string _lastSummary;
+        private float _nextAsk;
+        private float _nextRestart = 15f;
+        private int _restarts;
+        private bool _hadPermission;
+
+        // Binary4Babies (NibBall) gets its room this way: ask for spatial data again until the headset says yes, then
+        // restart the plane manager if it was started before the answer, because it stays empty otherwise.
+        private const float AskEverySeconds = 8f;
+        private const float RestartEverySeconds = 15f;
+        private const int MaxRestarts = 6;
+        private const string ScenePermission = AndroidPermissions.Scene;
 
         public int SurfaceCount { get; private set; }
         public bool FloorSet => _floorSet;
@@ -45,12 +56,15 @@ namespace Chorewars.AR
 
             _planes = _origin.GetComponent<ARPlaneManager>();
             if (_planes == null) _planes = _origin.gameObject.AddComponent<ARPlaneManager>();
+            _planes.requestedDetectionMode = PlaneDetectionMode.Horizontal | PlaneDetectionMode.Vertical;
             _planes.enabled = true;
         }
 
         private void Update()
         {
-            if (_planes == null || Time.unscaledTime < _nextPoll) return;
+            if (_planes == null) return;
+            KeepAskingForSpatialData();
+            if (Time.unscaledTime < _nextPoll) return;
             _nextPoll = Time.unscaledTime + PollSeconds;
 
             var surfaces = new List<SceneSurface>();
@@ -58,6 +72,44 @@ namespace Chorewars.AR
             SurfaceCount = surfaces.Count;
             Summarise(surfaces);
             AlignFloor(surfaces);
+        }
+
+        private void KeepAskingForSpatialData()
+        {
+            if (!AndroidPermissions.IsDevice) return;
+
+            bool granted = UnityEngine.Android.Permission.HasUserAuthorizedPermission(ScenePermission);
+            if (!granted)
+            {
+                if (Time.unscaledTime >= _nextAsk)
+                {
+                    _nextAsk = Time.unscaledTime + AskEverySeconds;
+                    UnityEngine.Android.Permission.RequestUserPermission(ScenePermission);
+                    TelemetryLogger.Info("Scene", "asking the headset for spatial data permission again");
+                }
+                return;
+            }
+
+            // The answer arrived after the plane manager started: restart it so it picks the room up.
+            if (!_hadPermission)
+            {
+                _hadPermission = true;
+                if (_planes.trackables.count == 0) Restart("spatial data permission arrived after the plane manager started");
+                return;
+            }
+
+            // Still nothing a while after the permission is held: restart a few times before giving up.
+            if (SurfaceCount == 0 && _restarts < MaxRestarts && Time.unscaledTime >= _nextRestart)
+                Restart("no room surfaces yet");
+        }
+
+        private void Restart(string why)
+        {
+            _restarts++;
+            _nextRestart = Time.unscaledTime + RestartEverySeconds;
+            _planes.enabled = false;
+            _planes.enabled = true;
+            TelemetryLogger.Info("Scene", $"plane manager restarted ({why}); restart {_restarts}");
         }
 
         public void ReadSurfaces(List<SceneSurface> into)

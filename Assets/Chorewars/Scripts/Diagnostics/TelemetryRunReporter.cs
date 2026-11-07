@@ -68,7 +68,7 @@ namespace Chorewars.Diagnostics
 
             // Ask before anything reads the room: meshing produces nothing until the scene permission
             // is granted, and the grant arrives a frame or more later, which the sampling below waits out.
-            AndroidPermissions.RequestAll();
+            if (!Chorewars.Core.CleanExperience.IsActive) AndroidPermissions.RequestAll();
         }
 
         void Hook()

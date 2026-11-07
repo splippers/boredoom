@@ -38,6 +38,7 @@ namespace Chorewars.Diagnostics
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
         {
+            if (Chorewars.Core.CleanExperience.IsActive) return;
             if (FindFirstObjectByType<DebugCapture>() != null) return;
             var go = new GameObject("DebugCapture");
             DontDestroyOnLoad(go);

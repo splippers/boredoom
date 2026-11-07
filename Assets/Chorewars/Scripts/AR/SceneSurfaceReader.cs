@@ -30,20 +30,41 @@ namespace Chorewars.AR
         private float _lastFloorY = float.NaN;
         private bool _floorSet;
         private string _lastSummary;
-        private float _nextAsk;
         private float _nextRestart = 15f;
         private int _restarts;
         private bool _hadPermission;
 
-        // Binary4Babies (NibBall) gets its room this way: ask for spatial data again until the headset says yes, then
-        // restart the plane manager if it was started before the answer, because it stays empty otherwise.
-        private const float AskEverySeconds = 8f;
+        // A plane manager started before consent may need to reload once consent arrives.
+        // Empty scenes receive bounded retries; the headset UI offers explicit Space Setup and recovery.
         private const float RestartEverySeconds = 15f;
         private const int MaxRestarts = 6;
         private const string ScenePermission = AndroidPermissions.Scene;
 
         public int SurfaceCount { get; private set; }
+
+        /// <summary>Surfaces by kind (floor, ceiling, wall, door, window, other) at the last poll.</summary>
+        public int[] Counts { get; } = new int[6];
+
+        /// <summary>True when the headset has said yes to spatial data (always true off the headset).</summary>
+        public bool PermissionGranted => !AndroidPermissions.IsDevice || UnityEngine.Android.Permission.HasUserAuthorizedPermission(ScenePermission);
+
+        public int Restarts => _restarts;
         public bool FloorSet => _floorSet;
+        public bool Initialized => _planes != null;
+        public bool ProviderRunning => _planes != null && _planes.subsystem != null && _planes.subsystem.running;
+        public string ProviderId => _planes != null && _planes.subsystem != null
+            ? _planes.subsystem.subsystemDescriptor.id : "none";
+
+        private bool _reloadPending;
+        private bool _resumePlanes;
+        private readonly List<SceneSurface> _pollSurfaces = new List<SceneSurface>();
+
+        /// <summary>Reload the saved scene after Space Setup or an explicit retry, without erasing the house.</summary>
+        public void RefreshScene()
+        {
+            _reloadPending = true;
+            _nextPoll = 0f;
+        }
 
         private void Start()
         {
@@ -63,30 +84,43 @@ namespace Chorewars.AR
         private void Update()
         {
             if (_planes == null) return;
+            if (_resumePlanes)
+            {
+                _resumePlanes = false;
+                _planes.enabled = true;
+                _nextPoll = 0f;
+                return;
+            }
+            if (_reloadPending)
+            {
+                _reloadPending = false;
+                _planes.enabled = false;
+                _resumePlanes = true;
+                SurfaceCount = 0;
+                System.Array.Clear(Counts, 0, Counts.Length);
+                return;
+            }
+
             KeepAskingForSpatialData();
             if (Time.unscaledTime < _nextPoll) return;
             _nextPoll = Time.unscaledTime + PollSeconds;
 
-            var surfaces = new List<SceneSurface>();
-            ReadSurfaces(surfaces);
-            SurfaceCount = surfaces.Count;
-            Summarise(surfaces);
-            AlignFloor(surfaces);
+            _pollSurfaces.Clear();
+            ReadSurfaces(_pollSurfaces);
+            SurfaceCount = _pollSurfaces.Count;
+            Summarise(_pollSurfaces);
+            AlignFloor(_pollSurfaces);
         }
 
         private void KeepAskingForSpatialData()
         {
             if (!AndroidPermissions.IsDevice) return;
 
-            bool granted = UnityEngine.Android.Permission.HasUserAuthorizedPermission(ScenePermission);
+            bool granted = AndroidPermissions.SceneGranted;
             if (!granted)
             {
-                if (Time.unscaledTime >= _nextAsk)
-                {
-                    _nextAsk = Time.unscaledTime + AskEverySeconds;
-                    UnityEngine.Android.Permission.RequestUserPermission(ScenePermission);
-                    TelemetryLogger.Info("Scene", "asking the headset for spatial data permission again");
-                }
+                _hadPermission = false;
+                AndroidPermissions.Request(ScenePermission);
                 return;
             }
 
@@ -107,9 +141,8 @@ namespace Chorewars.AR
         {
             _restarts++;
             _nextRestart = Time.unscaledTime + RestartEverySeconds;
-            _planes.enabled = false;
-            _planes.enabled = true;
-            TelemetryLogger.Info("Scene", $"plane manager restarted ({why}); restart {_restarts}");
+            RefreshScene();
+            TelemetryLogger.Info("Scene", $"plane manager restart queued ({why}); restart {_restarts}");
         }
 
         public void ReadSurfaces(List<SceneSurface> into)
@@ -171,6 +204,7 @@ namespace Chorewars.AR
         {
             var counts = new int[6];
             foreach (var s in surfaces) counts[(int)s.kind]++;
+            System.Array.Copy(counts, Counts, 6);
 
             string summary = $"floors={counts[0]} ceilings={counts[1]} walls={counts[2]} doors={counts[3]} windows={counts[4]} other={counts[5]}";
             if (summary == _lastSummary && Time.unscaledTime < _nextLog) return;

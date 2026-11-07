@@ -72,6 +72,7 @@ namespace Chorewars.Runtime
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
+            if (Chorewars.Core.CleanExperience.IsActive) return;
             if (_instance != null) return;
 
             var go = new GameObject(nameof(HooverSceneBootstrapper));
@@ -167,6 +168,12 @@ namespace Chorewars.Runtime
                 var sceneReader = scanGo.AddComponent<SceneSurfaceReader>();
                 doorGlow = scanGo.AddComponent<DoorGlow>();
                 doorGlow.Configure(sceneReader);
+                scanGo.AddComponent<ScanReadout>().Configure(sceneReader);
+                var houseScan = scanGo.AddComponent<HouseScanController>();
+                houseScan.Configure(sceneReader, meshTracker,
+                    FindFirstObjectByType<UnityEngine.XR.ARFoundation.ARSession>());
+                doorGlow.ScanController = houseScan;
+                scanGo.AddComponent<Chorewars.UI.HouseScanPanel>().Configure(houseScan, camera);
                 var questScan = scanGo.AddComponent<QuestScanSource>();
                 questScan.Configure(meshTracker, sceneReader);
                 scanSource = questScan;

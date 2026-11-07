@@ -35,6 +35,41 @@ namespace Chorewars.AR
         private float _nextPollAt;
 
         public int MeshCount => _meshesById.Count;
+        public bool IsScanning => _scanning;
+        public int ProviderCount => _subsystems.Count;
+        public bool ProviderRunning
+        {
+            get
+            {
+                foreach (var subsystem in _subsystems)
+                    if (subsystem != null && subsystem.running) return true;
+                return false;
+            }
+        }
+        public int VertexCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (var mesh in _meshesById.Values)
+                    if (mesh != null) count += mesh.vertexCount;
+                return count;
+            }
+        }
+        public long TriangleCount
+        {
+            get
+            {
+                long count = 0;
+                foreach (var mesh in _meshesById.Values)
+                {
+                    if (mesh == null) continue;
+                    for (int i = 0; i < mesh.subMeshCount; i++)
+                        if (mesh.GetTopology(i) == MeshTopology.Triangles) count += mesh.GetIndexCount(i) / 3;
+                }
+                return count;
+            }
+        }
 
         /// <summary>
         /// Appends every captured vertex, in world space, to <paramref name="into"/>. Lets a consumer
@@ -176,7 +211,10 @@ namespace Chorewars.AR
                 var parent = meshParent != null ? meshParent : transform;
                 go.transform.SetParent(parent, false);
                 var mf = go.AddComponent<MeshFilter>();
-                go.AddComponent<MeshRenderer>(); // optional, material set in editor
+                // Capture geometry without covering the player's real surroundings. Raw scan chunks
+                // have no display material; visualization belongs to an explicit review mode.
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.enabled = false;
                 mf.sharedMesh = mesh;
 
                 if (generateColliders)

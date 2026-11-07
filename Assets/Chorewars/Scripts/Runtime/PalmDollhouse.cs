@@ -81,6 +81,7 @@ namespace Chorewars.Runtime
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
         {
+            if (Chorewars.Core.CleanExperience.IsActive) return;
             if (!AndroidPermissions.IsDevice) return;
             if (FindFirstObjectByType<PalmDollhouse>() != null) return;
 

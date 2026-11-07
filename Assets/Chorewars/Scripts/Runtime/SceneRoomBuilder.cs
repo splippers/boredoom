@@ -41,7 +41,36 @@ namespace Chorewars.Runtime
         /// <summary>Doorways from the latest scene read; the house map merges them with the ones the walk finds.</summary>
         public static readonly List<RoomLink> PublishedDoors = new List<RoomLink>();
 
-        public static SceneRooms Build(IReadOnlyList<SceneSurface> surfaces)
+        /// <summary>Rooms already issued an id this session or in the saved house, so a rescan gives them the same ids.</summary>
+        public static readonly List<RoomScan> Known = new List<RoomScan>();
+
+        /// <summary>Builds the rooms, keeping ids stable against <see cref="Known"/>, and remembers the result.</summary>
+        public static SceneRooms BuildStable(IReadOnlyList<SceneSurface> surfaces)
+        {
+            var result = Build(surfaces, Known);
+            Remember(result.rooms);
+            return result;
+        }
+
+        /// <summary>Notes rooms (for example those loaded from the saved house) so their ids are never reused.</summary>
+        public static void Remember(IEnumerable<RoomScan> rooms)
+        {
+            if (rooms == null) return;
+            foreach (var room in rooms)
+            {
+                if (string.IsNullOrEmpty(room.roomId) || !room.roomId.StartsWith(IdPrefix) || room.assumed) continue;
+                int at = Known.FindIndex(k => k.roomId == room.roomId);
+                if (at >= 0) Known[at] = room; else Known.Add(room);
+            }
+        }
+
+        public static SceneRooms Build(IReadOnlyList<SceneSurface> surfaces) => Build(surfaces, null);
+
+        /// <summary>
+        /// A room that overlaps a previously issued one (by at least half) takes its id, so ids no longer shuffle when
+        /// room sizes change between scans. A new room takes the next number above every id issued before.
+        /// </summary>
+        public static SceneRooms Build(IReadOnlyList<SceneSurface> surfaces, IReadOnlyList<RoomScan> previous)
         {
             var result = new SceneRooms();
             if (surfaces == null) return result;
@@ -89,6 +118,8 @@ namespace Chorewars.Runtime
                 if (!absorbed) merged.Add(f);
             }
 
+            var ids = AssignIds(merged.ConvertAll(m => m.rect), previous);
+
             for (int i = 0; i < merged.Count; i++)
             {
                 float height = DefaultWallHeightMeters;
@@ -101,7 +132,7 @@ namespace Chorewars.Runtime
 
                 result.rooms.Add(new RoomScan
                 {
-                    roomId = IdPrefix + (i + 1),
+                    roomId = ids[i],
                     boundsXZ = merged[i].rect,
                     floorY = merged[i].y,
                     wallHeight = height,
@@ -136,6 +167,42 @@ namespace Chorewars.Runtime
         {
             PublishedDoors.Clear();
             if (doors != null) PublishedDoors.AddRange(doors);
+        }
+
+        private static List<string> AssignIds(List<Rect> rects, IReadOnlyList<RoomScan> previous)
+        {
+            var ids = new List<string>(new string[rects.Count]);
+            var taken = new HashSet<string>();
+            int highest = 0;
+
+            if (previous != null)
+            {
+                foreach (var p in previous)
+                    if (p.roomId != null && p.roomId.StartsWith(IdPrefix) && int.TryParse(p.roomId.Substring(IdPrefix.Length), out int n))
+                        highest = Mathf.Max(highest, n);
+
+                // Best overlaps claim ids first, so two close rooms cannot swap.
+                var pairs = new List<(float share, int room, int prev)>();
+                for (int r = 0; r < rects.Count; r++)
+                    for (int k = 0; k < previous.Count; k++)
+                    {
+                        if (previous[k].roomId == null || !previous[k].roomId.StartsWith(IdPrefix)) continue;
+                        float share = OverlapShare(rects[r], previous[k].boundsXZ);
+                        if (share >= 0.5f) pairs.Add((share, r, k));
+                    }
+                pairs.Sort((a, b) => b.share.CompareTo(a.share));
+                foreach (var pr in pairs)
+                {
+                    string id = previous[pr.prev].roomId;
+                    if (ids[pr.room] != null || taken.Contains(id)) continue;
+                    ids[pr.room] = id;
+                    taken.Add(id);
+                }
+            }
+
+            for (int r = 0; r < ids.Count; r++)
+                if (ids[r] == null) ids[r] = IdPrefix + (++highest);
+            return ids;
         }
 
         private static bool TryRect(SceneSurface s, out Rect rect)

@@ -93,5 +93,29 @@ namespace Chorewars.Tests
         {
             Assert.AreEqual(0, SceneRoomBuilder.Build(new[] { Floor(0, 0, 4, 0.2f) }).rooms.Count);
         }
+
+        [Test]
+        public void ARoomKeepsItsIdWhenAnotherRoomBecomesLarger()
+        {
+            var first = SceneRoomBuilder.Build(new[] { Floor(0, 0, 4, 3), Floor(5, 0, 8, 3) });
+            string small = first.rooms[1].roomId;
+
+            // The small room is now the biggest, so by rank it would have swapped ids.
+            var second = SceneRoomBuilder.Build(new[] { Floor(0, 0, 4, 3), Floor(5, 0, 12, 6) }, first.rooms);
+            var again = second.rooms.Find(r => r.boundsXZ.xMin >= 5f);
+
+            Assert.AreEqual(small, again.roomId);
+        }
+
+        [Test]
+        public void ANewRoomNeverTakesAnIdIssuedBefore()
+        {
+            var first = SceneRoomBuilder.Build(new[] { Floor(0, 0, 4, 3), Floor(5, 0, 8, 3) });
+            var second = SceneRoomBuilder.Build(new[] { Floor(5, 0, 8, 3), Floor(20, 0, 24, 4) }, first.rooms);
+
+            var ids = new HashSet<string>();
+            foreach (var r in second.rooms) Assert.IsTrue(ids.Add(r.roomId));
+            Assert.AreEqual("Scene-3", second.rooms.Find(r => r.boundsXZ.xMin >= 20f).roomId);
+        }
     }
 }

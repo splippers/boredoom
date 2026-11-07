@@ -181,7 +181,7 @@ namespace Chorewars.Runtime
 
             var surfaces = new List<SceneSurface>();
             _scene.ReadSurfaces(surfaces);
-            var scene = SceneRoomBuilder.Build(surfaces);
+            var scene = SceneRoomBuilder.BuildStable(surfaces);
             if (scene.rooms.Count == 0) return false;
 
             SceneRoomBuilder.Publish(scene.doors);

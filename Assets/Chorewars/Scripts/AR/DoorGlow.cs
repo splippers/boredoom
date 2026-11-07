@@ -33,6 +33,7 @@ namespace Chorewars.AR
 
         /// <summary>Where the rooms the headset's scan finds are handed on to; set once the house map exists.</summary>
         public HouseMapDriver Driver { get; set; }
+        public HouseScanController ScanController { get; set; }
 
         string _lastRoomsSignature;
         readonly List<SceneSurface> _surfaces = new List<SceneSurface>();
@@ -49,6 +50,8 @@ namespace Chorewars.AR
         /// <summary>Asks the headset to open Space Setup. Returns false when the headset refuses.</summary>
         public bool RequestSceneCapture()
         {
+            if (ScanController != null) return ScanController.RequestSceneCapture();
+            if (_capturing) return false;
             var session = FindFirstObjectByType<ARSession>();
             var subsystem = session != null ? session.subsystem as MetaOpenXRSessionSubsystem : null;
             if (subsystem == null)
@@ -110,7 +113,7 @@ namespace Chorewars.AR
 
             _surfaces.Clear();
             _reader.ReadSurfaces(_surfaces);
-            var scene = SceneRoomBuilder.Build(_surfaces);
+            var scene = SceneRoomBuilder.BuildStable(_surfaces);
             if (scene.rooms.Count == 0) return;
 
             var signature = new System.Text.StringBuilder();

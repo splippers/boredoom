@@ -75,6 +75,7 @@ namespace Chorewars.Voice
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
         {
+            if (Chorewars.Core.CleanExperience.IsActive) return;
             if (!AndroidPermissions.IsDevice) return;
             if (FindFirstObjectByType<InstructionPanel>() != null) return;
 

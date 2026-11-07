@@ -137,6 +137,7 @@ namespace Chorewars.Runtime
             _rooms.Clear();
             _roomAnchors.Clear();
             _registered.Clear();
+            SceneRoomBuilder.Remember(saved.rooms);
 
             for (int i = 0; i < saved.rooms.Count; i++)
             {

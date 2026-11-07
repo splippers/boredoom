@@ -12,6 +12,7 @@ namespace Chorewars.AR
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureExists()
         {
+            if (Chorewars.Core.CleanExperience.IsActive) return;
             if (_instance != null) return;
             var go = new GameObject(nameof(ProjectedTextureBaker));
             DontDestroyOnLoad(go);

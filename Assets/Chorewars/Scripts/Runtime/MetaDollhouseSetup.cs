@@ -1,0 +1,173 @@
+using System.Collections;
+using System.Collections.Generic;
+using Chorewars.Diagnostics;
+using Chorewars.Dollhouse;
+using Chorewars.UI;
+using UnityEngine;
+
+namespace Chorewars.Runtime
+{
+    public sealed class MetaDollhouseSetup : MonoBehaviour
+    {
+        [SerializeField] private MetaRoomMiniature _miniature;
+        private Camera _camera;
+        private PalmMiniatureController _palmPresentation;
+        private UnityEngine.XR.ARFoundation.ARPlaneManager _planes;
+        private bool _ownsPlanes;
+        private bool _reload;
+        private bool _enableNext;
+        private bool _hasCurrentData;
+        private float _nextRead;
+        private int _lastHash = int.MinValue;
+        private RectTransform _canvas;
+        private UnityEngine.UI.Text _status;
+        private UnityEngine.UI.Text _levelText;
+        private UnityEngine.UI.Button _primary;
+        private string _lastStatus;
+        private readonly List<MetaRoomMiniature.Surface> _surfaces = new List<MetaRoomMiniature.Surface>();
+        private readonly Chorewars.HandsFree.GazePanelPlacement _placement =
+            new Chorewars.HandsFree.GazePanelPlacement { Anchored = true };
+
+        private void Awake() => _palmPresentation = GetComponent<PalmMiniatureController>();
+
+        private IEnumerator Start()
+        {
+            while ((_camera = Camera.main) == null) yield return null;
+            _canvas = CleanMenu.CreateCanvas(transform, _camera, new Vector2(680f, 230f));
+            CleanMenu.Background(_canvas);
+            _status = CleanMenu.Text(_canvas, "MetaRoomStatus", "Waiting for Meta room data", new Vector2(0f, 40f), new Vector2(630f, 130f), 23);
+            _primary = CleanMenu.Button(_canvas, "LevelOrRetry", "RETRY READ", new Vector2(-220f, -75f), new Vector2(204f, 64f), LevelOrRetry);
+            _levelText = _primary.GetComponentInChildren<UnityEngine.UI.Text>();
+            CleanMenu.Button(_canvas, "Recenter", "RECENTER", new Vector2(0f, -75f), new Vector2(204f, 64f), Recenter);
+            CleanMenu.Button(_canvas, "BackToIntro", "BACK", new Vector2(220f, -75f), new Vector2(204f, 64f), Back);
+            if (!AndroidPermissions.IsDevice)
+            {
+                SetStatus("Quest required to read Meta Space Setup.\nNo simulated home is presented as measured data.");
+                yield break;
+            }
+            var origin = _camera.GetComponentInParent<Unity.XR.CoreUtils.XROrigin>();
+            if (origin == null) { SetStatus("XR origin is unavailable.\nReturn to intro and try again."); yield break; }
+            _planes = origin.GetComponent<UnityEngine.XR.ARFoundation.ARPlaneManager>();
+            _ownsPlanes = _planes == null;
+            if (_planes == null) _planes = origin.gameObject.AddComponent<UnityEngine.XR.ARFoundation.ARPlaneManager>();
+            _planes.requestedDetectionMode = UnityEngine.XR.ARSubsystems.PlaneDetectionMode.Horizontal | UnityEngine.XR.ARSubsystems.PlaneDetectionMode.Vertical;
+            _planes.enabled = AndroidPermissions.SceneGranted;
+            AndroidPermissions.Request(AndroidPermissions.Scene);
+            TelemetryLogger.Info("CleanSetup", "Reading Meta's saved Space Setup only; no custom scan, voice or profile restoration.");
+        }
+
+        private void Update()
+        {
+            if (_planes == null) return;
+            if (_enableNext) { _enableNext = false; _planes.enabled = AndroidPermissions.SceneGranted; _nextRead = 0f; return; }
+            if (_reload) { _reload = false; _planes.enabled = false; _enableNext = true; return; }
+            bool granted = AndroidPermissions.SceneGranted;
+            if (!granted)
+            {
+                _miniature?.SetVisible(false);
+                SetStatus("Spatial permission is required.\nAllow it in headset settings, then RETRY READ.");
+                return;
+            }
+            if (!_planes.enabled) { _planes.enabled = true; _nextRead = 0f; }
+            bool tracking = UnityEngine.XR.ARFoundation.ARSession.state == UnityEngine.XR.ARFoundation.ARSessionState.SessionTracking;
+            _miniature?.SetVisible(tracking && _hasCurrentData);
+            if (!tracking) { SetStatus("Waiting for headset tracking.\nThe miniature stays hidden until tracking returns."); return; }
+            if (Time.unscaledTime < _nextRead) return;
+            _nextRead = Time.unscaledTime + 1f;
+            ReadRoomModel();
+        }
+
+        private void ReadRoomModel()
+        {
+            _surfaces.Clear();
+            int hash = 17;
+            foreach (var plane in _planes.trackables)
+            {
+                if (plane.trackingState != UnityEngine.XR.ARSubsystems.TrackingState.Tracking) continue;
+                var classification = plane.classifications;
+                bool floor = (classification & UnityEngine.XR.ARSubsystems.PlaneClassifications.Floor) != 0;
+                bool wall = (classification & (UnityEngine.XR.ARSubsystems.PlaneClassifications.WallFace |
+                    UnityEngine.XR.ARSubsystems.PlaneClassifications.InnerWallFace |
+                    UnityEngine.XR.ARSubsystems.PlaneClassifications.InvisibleWallFace)) != 0;
+                if (!floor && !wall) continue;
+                var boundary = plane.boundary;
+                if (boundary.Length < 3) continue;
+                string id = plane.trackableId.ToString();
+                var corners = new Vector3[boundary.Length];
+                unchecked
+                {
+                    hash = hash * 31 + id.GetHashCode();
+                    hash = hash * 31 + (floor ? 1 : 0);
+                    for (int i = 0; i < corners.Length; i++)
+                    {
+                        corners[i] = plane.transform.TransformPoint(new Vector3(boundary[i].x, 0f, boundary[i].y));
+                        hash = hash * 31 + Mathf.RoundToInt(corners[i].x * 100f);
+                        hash = hash * 31 + Mathf.RoundToInt(corners[i].y * 100f);
+                        hash = hash * 31 + Mathf.RoundToInt(corners[i].z * 100f);
+                    }
+                }
+                _surfaces.Add(new MetaRoomMiniature.Surface(id, floor, corners));
+            }
+            bool floorFound = false;
+            foreach (var surface in _surfaces) if (surface.IsFloor) { floorFound = true; break; }
+            if (!floorFound)
+            {
+                _hasCurrentData = false;
+                _miniature?.SetVisible(false);
+                SetStatus("No saved Meta floor surfaces are available.\nComplete Space Setup in headset Settings, then retry.");
+                if (_levelText != null) _levelText.text = "RETRY READ";
+                return;
+            }
+            if (_miniature == null) { SetStatus("Miniature configuration is missing."); return; }
+            if (hash != _lastHash)
+            {
+                if (!_miniature.Rebuild(_surfaces, _camera.transform)) { SetStatus("Room surfaces arrived but could not be displayed.\nCheck the configured miniature materials."); return; }
+                _lastHash = hash;
+            }
+            _hasCurrentData = true;
+            _miniature.SetVisible(true);
+            RefreshSummary();
+        }
+        private void RefreshSummary()
+        {
+            if (_miniature == null) return;
+            SetStatus($"Your home: {_miniature.FloorCount} floor surfaces / {_miniature.Levels.Count} levels\n{_miniature.LevelLabel} — raise your left palm\nRight pinch: drag to turn, pull to zoom. Both pinches: stretch/turn.");
+            if (_levelText != null) _levelText.text = _miniature.LevelLabel;
+        }
+        private void SetStatus(string text)
+        {
+            if (_status != null) _status.text = text;
+            if (_lastStatus == text) return;
+            _lastStatus = text;
+            TelemetryLogger.Info("CleanSetup", text.Replace('\n', ' '));
+        }
+        public void RetryRead()
+        {
+            if (AndroidPermissions.IsDevice) AndroidPermissions.Request(AndroidPermissions.Scene, true);
+            _lastHash = int.MinValue; _reload = true; _nextRead = 0f;
+        }
+        private void LevelOrRetry()
+        {
+            if (!_hasCurrentData || _miniature == null || _miniature.FloorCount == 0) RetryRead();
+            else { _miniature.CycleLevel(); RefreshSummary(); }
+        }
+        public void Recenter()
+        {
+            _placement.Release();
+            if (_palmPresentation != null) _palmPresentation.ResetView();
+            else _miniature?.Recenter();
+        }
+        public void Back()=> UnityEngine.SceneManagement.SceneManager.LoadScene(Chorewars.Core.CleanExperience.IntroScene);
+        private void OnApplicationPause(bool paused)
+        {
+            _hasCurrentData = false;
+            _miniature?.SetVisible(false);
+            if (!paused) { _lastHash = int.MinValue; _reload = true; }
+        }
+        private void LateUpdate()
+        {
+            if (_canvas != null && _camera != null) _placement.Hold(_canvas, _camera.transform, 1.35f, 0.5f);
+        }
+        private void OnDestroy(){ if (_ownsPlanes && _planes != null) Destroy(_planes); }
+    }
+}

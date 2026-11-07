@@ -144,9 +144,28 @@ namespace Chorewars.Runtime
             }
         }
 
+        public static bool HasMeasuredRooms(System.Collections.Generic.IReadOnlyList<RoomScan> rooms)
+        {
+            if (rooms == null) return false;
+            for (int i = 0; i < rooms.Count; i++)
+                if (!rooms[i].assumed && !string.IsNullOrEmpty(rooms[i].roomId)
+                    && rooms[i].boundsXZ.width > 0f && rooms[i].boundsXZ.height > 0f) return true;
+            return false;
+        }
+
         private void BeginPresent()
         {
             if (_phase == Phase.Presenting || _phase == Phase.Playing) return;
+            if (_source is QuestScanSource && (_pipeline == null || !HasMeasuredRooms(_pipeline.Rooms)))
+            {
+                _phase = Phase.Ready;
+                _presentUntil = -1f;
+                _hud.ShowScanPanel("NO ROOM GEOMETRY", "No measured room was received. Use HOUSE SCAN > OPEN SPACE SETUP, then retry. A guessed box is not a scan.");
+                _hud.SetScanButtonLabel("RETRY SCAN");
+                _hud.SetScanProgress(0f, "No measured geometry — chore not started");
+                Debug.LogWarning("[ScanFlowController] Empty Quest scan rejected; fallback is not presented as measured geometry.");
+                return;
+            }
             _phase = Phase.Presenting;
 
             _hud.SetScanProgress(1f, "SCAN COMPLETE");

@@ -38,6 +38,7 @@ namespace Chorewars.Diagnostics
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
         {
+            if (Chorewars.Core.CleanExperience.IsActive) return;
             if (!AndroidPermissions.IsDevice) return;
             if (FindFirstObjectByType<CameraFrameProbe>() != null) return;
 

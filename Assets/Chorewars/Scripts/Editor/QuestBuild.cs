@@ -112,6 +112,48 @@ namespace Chorewars.Build
             return $"build {summary.result}: {summary.totalErrors} error(s). See the console for details.";
         }
 
+        [MenuItem("BoreDOOM/Quest/Build clean intro and dollhouse")]
+        public static void BuildCleanFromMenu() => Debug.Log(BuildCleanApk());
+
+        public static string BuildCleanApk(string outputPath = "Builds/BoreDOOM-CleanIntro.apk")
+        {
+            if (!IsAndroidBuildSupported || !File.Exists(Chorewars.Core.CleanExperience.IntroPath) || !File.Exists(Chorewars.Core.CleanExperience.SetupPath))
+                return "Clean build prerequisites are missing. " + Validate();
+            var settings = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
+            var camera = settings != null ? settings.GetFeature<ARCameraFeature>() : null;
+            bool previousImages = camera != null && camera.cameraImageSupportEnabled;
+            try
+            {
+                if (camera != null && previousImages)
+                {
+                    camera.cameraImageSupportEnabled = false;
+                    EditorUtility.SetDirty(camera);
+                    AssetDatabase.SaveAssets();
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+                var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { Chorewars.Core.CleanExperience.IntroPath, Chorewars.Core.CleanExperience.SetupPath },
+                    locationPathName = outputPath, target = BuildTarget.Android,
+                    targetGroup = BuildTargetGroup.Android, options = BuildOptions.None
+                });
+                var summary = report.summary;
+                Directory.CreateDirectory("Library/BoreDOOMVerification");
+                string message = $"{summary.result}; errors={summary.totalErrors}; duration={summary.totalTime}; output={outputPath}";
+                File.WriteAllText("Library/BoreDOOMVerification/clean-build.txt", message);
+                return message;
+            }
+            finally
+            {
+                if (camera != null && camera.cameraImageSupportEnabled != previousImages)
+                {
+                    camera.cameraImageSupportEnabled = previousImages;
+                    EditorUtility.SetDirty(camera);
+                    AssetDatabase.SaveAssets();
+                }
+            }
+        }
+
         /// <summary>
         /// The settings a Quest 3 build needs: ARM64, IL2CPP, a modern minimum SDK, Vulkan with an
         /// OpenGLES3 fallback, and linear colour. Internet permission is on because ChoreWars Battle

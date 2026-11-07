@@ -66,40 +66,48 @@ namespace Chorewars.Diagnostics
             TelemetryLogger.Info("Permissions", "Requested: " + Summary());
         }
 
-        /// <summary>Requests one permission, unless it is already granted or already asked for.</summary>
-        public static void Request(string permission)
+        /// <summary>Requests once automatically; an explicit user retry may ask again after a refusal.</summary>
+        public static void Request(string permission, bool userInitiated = false)
         {
             if (!IsDevice || string.IsNullOrEmpty(permission)) return;
-            if (Pending.ContainsKey(permission)) return;
 
             if (UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission))
             {
                 Granted[permission] = true;
+                Pending.Remove(permission);
                 return;
             }
+
+            if (Pending.ContainsKey(permission)) return;
+            if (!userInitiated && Granted.ContainsKey(permission)) return;
 
             var callbacks = new UnityEngine.Android.PermissionCallbacks();
 
             callbacks.PermissionGranted += name =>
             {
                 Granted[name] = true;
+                Pending.Remove(name);
                 TelemetryLogger.Info("Permissions", name + " granted.");
             };
 
             callbacks.PermissionDenied += name =>
             {
                 Granted[name] = false;
-                TelemetryLogger.Warn("Permissions", name + " denied — the feature that needs it will not work. " +
-                                                   "If it cannot be asked again it has to be turned on in the headset settings.");
+                Pending.Remove(name);
+                TelemetryLogger.Warn("Permissions", name + " denied — retry explicitly or enable it in headset settings.");
             };
 
             Pending[permission] = callbacks;
             UnityEngine.Android.Permission.RequestUserPermission(permission, callbacks);
         }
 
-        /// <summary>Whether a permission is known to be granted. Unknown and refused both read false.</summary>
+        /// <summary>Fresh OS state on device; cached callbacks are not authoritative after a settings change.</summary>
         public static bool IsGranted(string permission)
-            => !string.IsNullOrEmpty(permission) && Granted.TryGetValue(permission, out var granted) && granted;
+        {
+            if (string.IsNullOrEmpty(permission)) return false;
+            if (IsDevice) return UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission);
+            return Granted.TryGetValue(permission, out var granted) && granted;
+        }
 
         /// <summary>Room geometry is available to read. The scan checks this before expecting meshes.</summary>
         public static bool SceneGranted => IsGranted(Scene);

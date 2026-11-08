@@ -18,7 +18,7 @@ floating head, is the in-headset voice of the AI; she follows the player.
   His late mother's voice recordings are private and local only: not in this repo, not in the build, not cloned, until he raises it.
 - Several adb devices exist. Identify the Quest with `tools/quest-device.sh` (model Quest_3, product eureka). Never hardcode serials in tracked
   files. The Samsung phones are not the Quest. Do not change power or stay-awake settings.
-- Unity MCP needs `UNITY_MCP_TOKEN` (in `~/.bashrc`). Never write it to a tracked file.
+- Unity MCP: the old local unity-mcp (port 57597, `UNITY_MCP_TOKEN`) is retired. Use the cloud `ai-game-developer` MCP (entry in the untracked `.mcp.json`; never write its key to a tracked file).
 - Verify other agents' claims (Pickle once reported a Quest serial that did not exist).
 
 ## Build, test, install (on LAVE)
@@ -68,8 +68,7 @@ floating head, is the in-headset voice of the AI; she follows the player.
    between scans and break room names; make them stable.
 4. Door-frame scanning to link rooms (Jon asked; partly covered by the headset's door frames).
 5. Jon said "stop the game running its books and windows and things while testing": never clarified. Ask him.
-6. Unity MCP: the editor plugin (now 1.6.0) was rejected with "Authorization failed" because Unity Hub started without `UNITY_MCP_TOKEN`.
-   Relaunch the editor from a shell that has the token, then `/mcp reconnect all`. Builds and tests do not need it.
+6. Unity MCP: resolved. The old plugin route was dropped; Unity is reached through the AI Game Developer cloud MCP.
 7. Unity AI (Jon is adding it for graphics, sound, music). Check Unity's terms on generated assets before shipping them.
 8. Hospital swarm (SysMedic board, posting as ARCHITECT) holds BoreDoom survey picks; the credential lives outside the repo. Do not post without Jon.
 

@@ -11,10 +11,10 @@ namespace Chorewars.Runtime
     public sealed class PalmGate
     {
         /// <summary>Palm normal's upward component (1 = flat and facing up) that counts as "up" for showing.</summary>
-        public float ShowAbove = 0.6f;
+        public float ShowAbove = 0.5f;
 
         /// <summary>Below this the palm counts as lowered. Lower than <see cref="ShowAbove"/> on purpose.</summary>
-        public float HideBelow = 0.3f;
+        public float HideBelow = 0.2f;
 
         public float ShowAfterSeconds = 0.25f;
         public float HideAfterSeconds = 0.5f;

@@ -90,6 +90,7 @@ namespace Chorewars.Dollhouse
             _miniature.UsePalmPresentation();
             _gestures.RotationDegreesPerMeter = _rotationDegreesPerMeter;
         }
+        private float _lastHandLog;
         private void OnEnable() { _connect = StartCoroutine(ConnectHands()); }
         private IEnumerator ConnectHands()
         {
@@ -132,6 +133,12 @@ namespace Chorewars.Dollhouse
                 normalUp = -(worldPalm.rotation * Vector3.up).y;
             }
             else palmTracked = false;
+            if (Time.unscaledTime - _lastHandLog > 1f)
+            {
+                _lastHandLog = Time.unscaledTime;
+                TelemetryLogger.Info("PalmMiniature", "hands: leftTracked=" + left.isTracked + " flags=" + flags + " palmTracked=" + palmTracked +
+                    " normalUp=" + normalUp.ToString("0.00") + " visible=" + _gestures.Visible + " space=" + (_trackingSpace != null));
+            }
             bool haveLeftJoints = (flags & UnityEngine.XR.Hands.XRHandSubsystem.UpdateSuccessFlags.LeftHandJoints) != 0;
             bool haveRightJoints = (flags & UnityEngine.XR.Hands.XRHandSubsystem.UpdateSuccessFlags.RightHandJoints) != 0;
             bool lp = Pinch(left, haveLeftJoints, ref _leftHeld, out var leftPoint);

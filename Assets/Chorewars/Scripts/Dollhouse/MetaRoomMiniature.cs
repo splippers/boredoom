@@ -47,6 +47,14 @@ namespace Chorewars.Dollhouse
             _palmVisible = false;
             ApplyVisibility();
         }
+        /// <summary>Show the house floating in front of the player instead of on the palm (fallback when the palm is not tracked).</summary>
+        public void UseFloatingPresentation()
+        {
+            _palmDriven = false;
+            if (_content != null) _content.localScale = Vector3.one * _fitScale;
+            Recenter();
+            ApplyVisibility();
+        }
         public void SetPalmVisible(bool visible) { _palmVisible = visible; ApplyVisibility(); }
         public void SetPalmPose(Vector3 bottomPoint, float yawDegrees, float zoom)
         {

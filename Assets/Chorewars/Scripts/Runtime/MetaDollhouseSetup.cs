@@ -23,14 +23,27 @@ namespace Chorewars.Runtime
         private UnityEngine.UI.Text _status;
         private UnityEngine.UI.Text _levelText;
         private UnityEngine.UI.Button _primary;
-        private UnityEngine.UI.Button _hoover;
+        private UnityEngine.UI.Button _hoover, _houseMode;
+        private UnityEngine.UI.Text _houseModeText;
+        private bool _floating;
         private HooverSlice _slice;
         private string _lastStatus;
         private readonly List<MetaRoomMiniature.Surface> _surfaces = new List<MetaRoomMiniature.Surface>();
         private readonly Chorewars.HandsFree.GazePanelPlacement _placement =
             new Chorewars.HandsFree.GazePanelPlacement { Anchored = true };
 
-        private void Awake() => _palmPresentation = GetComponent<PalmMiniatureController>();
+        // Test switches (create an empty file with this name in the app's files folder): used to find what drops passthrough.
+        private static bool Flag(string name) => System.IO.File.Exists(System.IO.Path.Combine(Application.persistentDataPath, name));
+
+        private void Awake()
+        {
+            _palmPresentation = GetComponent<PalmMiniatureController>();
+            if (Flag("bisect-nopalm") && _palmPresentation != null)
+            {
+                _palmPresentation.enabled = false;
+                TelemetryLogger.Info("CleanSetup", "TEST: palm miniature disabled.");
+            }
+        }
 
         private IEnumerator Start()
         {
@@ -42,12 +55,15 @@ namespace Chorewars.Runtime
             _levelText = _primary.GetComponentInChildren<UnityEngine.UI.Text>();
             CleanMenu.Button(_canvas, "Recenter", "RECENTER", new Vector2(0f, -75f), new Vector2(204f, 64f), Recenter);
             CleanMenu.Button(_canvas, "BackToIntro", "BACK", new Vector2(220f, -75f), new Vector2(204f, 64f), Back);
-            _hoover = CleanMenu.Button(_canvas, "Hoover", "HOOVER THIS ROOM", new Vector2(0f, -150f), new Vector2(420f, 64f), StartHoover);
+            _houseMode = CleanMenu.Button(_canvas, "HouseMode", "HOUSE IN FRONT", new Vector2(-190f, -150f), new Vector2(280f, 64f), ToggleHouseMode);
+            _houseModeText = _houseMode.GetComponentInChildren<UnityEngine.UI.Text>();
+            _hoover = CleanMenu.Button(_canvas, "Hoover", "HOOVER THIS ROOM", new Vector2(150f, -150f), new Vector2(340f, 64f), StartHoover);
             if (!AndroidPermissions.IsDevice)
             {
                 SetStatus("Quest required to read Meta Space Setup.\nNo simulated home is presented as measured data.");
                 yield break;
             }
+            if (Flag("bisect-noplanes")) { SetStatus("TEST: room planes and permission request skipped."); TelemetryLogger.Info("CleanSetup", "TEST: planes skipped."); yield break; }
             var origin = _camera.GetComponentInParent<Unity.XR.CoreUtils.XROrigin>();
             if (origin == null) { SetStatus("XR origin is unavailable.\nReturn to intro and try again."); yield break; }
             _planes = origin.GetComponent<UnityEngine.XR.ARFoundation.ARPlaneManager>();
@@ -143,6 +159,15 @@ namespace Chorewars.Runtime
             if (_lastStatus == text) return;
             _lastStatus = text;
             TelemetryLogger.Info("CleanSetup", text.Replace('\n', ' '));
+        }
+        private void ToggleHouseMode()
+        {
+            if (_miniature == null) return;
+            _floating = !_floating;
+            if (_floating) _miniature.UseFloatingPresentation(); else _miniature.UsePalmPresentation();
+            if (_palmPresentation != null) _palmPresentation.enabled = !_floating;
+            if (_houseModeText != null) _houseModeText.text = _floating ? "HOUSE ON PALM" : "HOUSE IN FRONT";
+            TelemetryLogger.Info("CleanSetup", _floating ? "House shown floating in front." : "House shown on the left palm.");
         }
         private void StartHoover()
         {

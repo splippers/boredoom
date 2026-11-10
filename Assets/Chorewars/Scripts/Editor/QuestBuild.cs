@@ -115,7 +115,10 @@ namespace Chorewars.Build
         [MenuItem("BoreDOOM/Quest/Build clean intro and dollhouse")]
         public static void BuildCleanFromMenu() => Debug.Log(BuildCleanApk());
 
-        public static string BuildCleanApk(string outputPath = "Builds/BoreDOOM-CleanIntro.apk")
+        [MenuItem("BoreDOOM/Quest/Build clean intro and dollhouse (camera on, for the object probe)")]
+        public static void BuildCleanCameraFromMenu() => Debug.Log(BuildCleanApk("Builds/BoreDOOM-CleanCamera.apk", true));
+
+        public static string BuildCleanApk(string outputPath = "Builds/BoreDOOM-CleanIntro.apk", bool cameraImages = false)
         {
             if (!IsAndroidBuildSupported || !File.Exists(Chorewars.Core.CleanExperience.IntroPath) || !File.Exists(Chorewars.Core.CleanExperience.SetupPath))
                 return "Clean build prerequisites are missing. " + Validate();
@@ -124,9 +127,9 @@ namespace Chorewars.Build
             bool previousImages = camera != null && camera.cameraImageSupportEnabled;
             try
             {
-                if (camera != null && previousImages)
+                if (camera != null && camera.cameraImageSupportEnabled != cameraImages)
                 {
-                    camera.cameraImageSupportEnabled = false;
+                    camera.cameraImageSupportEnabled = cameraImages;
                     EditorUtility.SetDirty(camera);
                     AssetDatabase.SaveAssets();
                 }

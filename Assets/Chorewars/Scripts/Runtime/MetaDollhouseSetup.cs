@@ -23,6 +23,8 @@ namespace Chorewars.Runtime
         private UnityEngine.UI.Text _status;
         private UnityEngine.UI.Text _levelText;
         private UnityEngine.UI.Button _primary;
+        private UnityEngine.UI.Button _hoover;
+        private HooverSlice _slice;
         private string _lastStatus;
         private readonly List<MetaRoomMiniature.Surface> _surfaces = new List<MetaRoomMiniature.Surface>();
         private readonly Chorewars.HandsFree.GazePanelPlacement _placement =
@@ -33,13 +35,14 @@ namespace Chorewars.Runtime
         private IEnumerator Start()
         {
             while ((_camera = Camera.main) == null) yield return null;
-            _canvas = CleanMenu.CreateCanvas(transform, _camera, new Vector2(680f, 230f));
+            _canvas = CleanMenu.CreateCanvas(transform, _camera, new Vector2(680f, 300f));
             CleanMenu.Background(_canvas);
             _status = CleanMenu.Text(_canvas, "MetaRoomStatus", "Waiting for Meta room data", new Vector2(0f, 40f), new Vector2(630f, 130f), 23);
             _primary = CleanMenu.Button(_canvas, "LevelOrRetry", "RETRY READ", new Vector2(-220f, -75f), new Vector2(204f, 64f), LevelOrRetry);
             _levelText = _primary.GetComponentInChildren<UnityEngine.UI.Text>();
             CleanMenu.Button(_canvas, "Recenter", "RECENTER", new Vector2(0f, -75f), new Vector2(204f, 64f), Recenter);
             CleanMenu.Button(_canvas, "BackToIntro", "BACK", new Vector2(220f, -75f), new Vector2(204f, 64f), Back);
+            _hoover = CleanMenu.Button(_canvas, "Hoover", "HOOVER THIS ROOM", new Vector2(0f, -150f), new Vector2(420f, 64f), StartHoover);
             if (!AndroidPermissions.IsDevice)
             {
                 SetStatus("Quest required to read Meta Space Setup.\nNo simulated home is presented as measured data.");
@@ -58,7 +61,7 @@ namespace Chorewars.Runtime
 
         private void Update()
         {
-            if (_planes == null) return;
+            if (_planes == null || _slice != null) return;
             if (_enableNext) { _enableNext = false; _planes.enabled = AndroidPermissions.SceneGranted; _nextRead = 0f; return; }
             if (_reload) { _reload = false; _planes.enabled = false; _enableNext = true; return; }
             bool granted = AndroidPermissions.SceneGranted;
@@ -140,6 +143,33 @@ namespace Chorewars.Runtime
             if (_lastStatus == text) return;
             _lastStatus = text;
             TelemetryLogger.Info("CleanSetup", text.Replace('\n', ' '));
+        }
+        private void StartHoover()
+        {
+            if (_slice != null || !_hasCurrentData || _camera == null) { SetStatus("Hoover needs your room first.\nWait for 'Your home: ...' then try again."); return; }
+            var head = _camera.transform.position; Vector3[] best = null; float bestScore = float.MaxValue;
+            foreach (var s in _surfaces)
+            {
+                if (!s.IsFloor) continue;
+                float y = 0f; foreach (var c in s.WorldCorners) y += c.y; y /= s.WorldCorners.Length;
+                float score = Mathf.Abs(head.y - 1.2f - y) * 4f;
+                if (!HooverGrid.Contains(s.WorldCorners, head.x, head.z))
+                {
+                    float cx = 0f, cz = 0f; foreach (var c in s.WorldCorners) { cx += c.x; cz += c.z; }
+                    score += 10f + Vector2.Distance(new Vector2(head.x, head.z), new Vector2(cx / s.WorldCorners.Length, cz / s.WorldCorners.Length));
+                }
+                if (score < bestScore) { bestScore = score; best = s.WorldCorners; }
+            }
+            if (best == null) { SetStatus("No floor to hoover."); return; }
+            _miniature?.SetVisible(false);
+            _canvas.gameObject.SetActive(false);
+            _slice = HooverSlice.Begin(transform, _camera, best, EndHoover);
+        }
+        private void EndHoover()
+        {
+            _slice = null;
+            _canvas.gameObject.SetActive(true);
+            _lastHash = int.MinValue; _nextRead = 0f;
         }
         public void RetryRead()
         {

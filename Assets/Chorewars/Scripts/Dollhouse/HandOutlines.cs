@@ -50,13 +50,15 @@ namespace Chorewars.Dollhouse
 
         void Awake()
         {
-            _material = new Material(Shader.Find("Sprites/Default"));
+            var shader = Shader.Find("Chorewars/GloveOutline");
+            if (shader == null) { TelemetryLogger.Warn("HandOutlines", "glove outline shader missing; using flat sprite shader."); shader = Shader.Find("Sprites/Default"); }
+            _material = new Material(shader);
             Build(_left, "Left", new Color(0.1f, 1f, 1f, 1f));
             Build(_right, "Right", new Color(1f, 0.3f, 0.9f, 1f));
         }
 
         static readonly Color Glove = new Color(1f, 1f, 1f, 1f);
-        static readonly Color Seam = new Color(0.9f, 0.92f, 0.96f, 1f);
+        static readonly Color Seam = new Color(1f, 1f, 1f, 1f);
 
         Transform Part(Hand hand, PrimitiveType type, string name, Color colour)
         {

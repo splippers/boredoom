@@ -26,6 +26,10 @@ namespace Chorewars.Runtime
         private UnityEngine.UI.Button _hoover, _houseMode;
         private UnityEngine.UI.Text _houseModeText;
         private bool _floating;
+        private UnityEngine.UI.Button _scanWhat, _scanGo;
+        private UnityEngine.UI.Text _scanWhatText, _scanGoText, _scanStatus;
+        private static readonly string[] ScanLabels = { "hoover", "toys", "clothes", "shoes", "room" };
+        private int _scanLabel;
         private HooverSlice _slice;
         private string _lastStatus;
         private readonly List<MetaRoomMiniature.Surface> _surfaces = new List<MetaRoomMiniature.Surface>();
@@ -48,16 +52,21 @@ namespace Chorewars.Runtime
         private IEnumerator Start()
         {
             while ((_camera = Camera.main) == null) yield return null;
-            _canvas = CleanMenu.CreateCanvas(transform, _camera, new Vector2(680f, 300f));
+            _canvas = CleanMenu.CreateCanvas(transform, _camera, new Vector2(680f, 440f));
             CleanMenu.Background(_canvas);
-            _status = CleanMenu.Text(_canvas, "MetaRoomStatus", "Waiting for Meta room data", new Vector2(0f, 40f), new Vector2(630f, 130f), 23);
-            _primary = CleanMenu.Button(_canvas, "LevelOrRetry", "RETRY READ", new Vector2(-220f, -75f), new Vector2(204f, 64f), LevelOrRetry);
+            _status = CleanMenu.Text(_canvas, "MetaRoomStatus", "Waiting for Meta room data", new Vector2(0f, 140f), new Vector2(630f, 110f), 23);
+            _primary = CleanMenu.Button(_canvas, "LevelOrRetry", "RETRY READ", new Vector2(-220f, 55f), new Vector2(204f, 64f), LevelOrRetry);
             _levelText = _primary.GetComponentInChildren<UnityEngine.UI.Text>();
-            CleanMenu.Button(_canvas, "Recenter", "RECENTER", new Vector2(0f, -75f), new Vector2(204f, 64f), Recenter);
-            CleanMenu.Button(_canvas, "BackToIntro", "BACK", new Vector2(220f, -75f), new Vector2(204f, 64f), Back);
-            _houseMode = CleanMenu.Button(_canvas, "HouseMode", "HOUSE IN FRONT", new Vector2(-190f, -150f), new Vector2(280f, 64f), ToggleHouseMode);
+            CleanMenu.Button(_canvas, "Recenter", "RECENTER", new Vector2(0f, 55f), new Vector2(204f, 64f), Recenter);
+            CleanMenu.Button(_canvas, "BackToIntro", "BACK", new Vector2(220f, 55f), new Vector2(204f, 64f), Back);
+            _houseMode = CleanMenu.Button(_canvas, "HouseMode", "HOUSE IN FRONT", new Vector2(-190f, -20f), new Vector2(280f, 64f), ToggleHouseMode);
             _houseModeText = _houseMode.GetComponentInChildren<UnityEngine.UI.Text>();
-            _hoover = CleanMenu.Button(_canvas, "Hoover", "HOOVER THIS ROOM", new Vector2(150f, -150f), new Vector2(340f, 64f), StartHoover);
+            _hoover = CleanMenu.Button(_canvas, "Hoover", "HOOVER THIS ROOM", new Vector2(150f, -20f), new Vector2(340f, 64f), StartHoover);
+            _scanWhat = CleanMenu.Button(_canvas, "ScanWhat", "SCAN: HOOVER", new Vector2(-190f, -95f), new Vector2(280f, 64f), CycleScanLabel);
+            _scanWhatText = _scanWhat.GetComponentInChildren<UnityEngine.UI.Text>();
+            _scanGo = CleanMenu.Button(_canvas, "ScanGo", "START SCAN", new Vector2(150f, -95f), new Vector2(340f, 64f), ToggleScan);
+            _scanGoText = _scanGo.GetComponentInChildren<UnityEngine.UI.Text>();
+            _scanStatus = CleanMenu.Text(_canvas, "ScanStatus", "Scan: saves camera pictures on this headset only.", new Vector2(0f, -165f), new Vector2(630f, 44f), 20);
             if (!AndroidPermissions.IsDevice)
             {
                 SetStatus("Quest required to read Meta Space Setup.\nNo simulated home is presented as measured data.");
@@ -160,6 +169,29 @@ namespace Chorewars.Runtime
             _lastStatus = text;
             TelemetryLogger.Info("CleanSetup", text.Replace('\n', ' '));
         }
+        private void CycleScanLabel()
+        {
+            var cap = Chorewars.Diagnostics.FrameCapture.Instance;
+            if (cap != null && cap.IsRunning) return; // label is fixed while a scan runs
+            _scanLabel = (_scanLabel + 1) % ScanLabels.Length;
+        }
+        private void ToggleScan()
+        {
+            var cap = Chorewars.Diagnostics.FrameCapture.Instance;
+            if (cap == null) { if (_scanStatus != null) _scanStatus.text = "Scanning is not available here."; return; }
+            if (cap.IsRunning) cap.StopScan();
+            else if (!cap.StartScan(ScanLabels[_scanLabel])) _scanStatus.text = "Could not start the scan.";
+        }
+        private void RefreshScanUi()
+        {
+            if (_scanGoText == null) return;
+            var cap = Chorewars.Diagnostics.FrameCapture.Instance;
+            bool running = cap != null && cap.IsRunning;
+            _scanGoText.text = running ? "STOP SCAN" : "START SCAN";
+            _scanWhatText.text = "SCAN: " + (running ? cap.Label : ScanLabels[_scanLabel]).ToUpperInvariant();
+            if (running) _scanStatus.text = "SCANNING " + cap.Label + ": " + cap.Count + " pictures. Look around it, close and far.";
+            else if (cap != null && cap.Count > 0) _scanStatus.text = "Last scan: " + cap.Count + " pictures saved on this headset.";
+        }
         private void ToggleHouseMode()
         {
             if (_miniature == null) return;
@@ -222,6 +254,7 @@ namespace Chorewars.Runtime
         private void LateUpdate()
         {
             if (_canvas != null && _camera != null) _placement.Hold(_canvas, _camera.transform, 1.35f, 0.5f);
+            RefreshScanUi();
         }
         private void OnDestroy(){ if (_ownsPlanes && _planes != null) Destroy(_planes); }
     }

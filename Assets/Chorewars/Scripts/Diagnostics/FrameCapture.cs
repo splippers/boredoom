@@ -30,6 +30,24 @@ namespace Chorewars.Diagnostics
         string _dir;
         ARCameraManager _manager;
         Transform _head;
+        string _label = "";
+
+        public static FrameCapture Instance { get; private set; }
+        public bool IsRunning => _running;
+        public int Count => _count;
+        public string Label => _label;
+
+        void Awake() { Instance = this; }
+
+        /// <summary>Starts a scan from inside the game. Returns false if one is already running or the folder cannot be made.</summary>
+        public bool StartScan(string label, float seconds = 600f, float every = 1f, int size = 864)
+        {
+            if (_running) return false;
+            return BeginScan(label, seconds, every, size);
+        }
+
+        /// <summary>Ends the scan now; the frames so far are kept.</summary>
+        public void StopScan() { if (_running) Finish(); }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
@@ -66,19 +84,30 @@ namespace Chorewars.Diagnostics
         void Begin(string text)
         {
             float seconds = Mathf.Clamp(Setting(text, "seconds", 90f), 5f, 600f);
-            _every = Mathf.Clamp(Setting(text, "every", 1f), 0.2f, 10f);
-            _size = Mathf.Clamp((int)Setting(text, "size", 864f), 256, 1728);
+            float every = Mathf.Clamp(Setting(text, "every", 1f), 0.2f, 10f);
+            int size = (int)Setting(text, "size", 864f);
+            BeginScan("", seconds, every, size);
+        }
+
+        bool BeginScan(string label, float seconds, float every, int size)
+        {
+            seconds = Mathf.Clamp(seconds, 5f, 600f);
+            _every = Mathf.Clamp(every, 0.2f, 10f);
+            _size = Mathf.Clamp(size, 256, 1728);
+            _label = string.IsNullOrEmpty(label) ? "" : label;
             _manager = FindFirstObjectByType<ARCameraManager>();
             _head = Camera.main != null ? Camera.main.transform : null;
-            _dir = Path.Combine(Application.persistentDataPath, "captures", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
+            string stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+            _dir = Path.Combine(Application.persistentDataPath, "captures", _label.Length > 0 ? stamp + "-" + _label : stamp);
             try { Directory.CreateDirectory(_dir); }
-            catch (Exception e) { TelemetryLogger.Warn("FrameCapture", "cannot create " + _dir + ": " + e.Message); return; }
+            catch (Exception e) { TelemetryLogger.Warn("FrameCapture", "cannot create " + _dir + ": " + e.Message); return false; }
             AndroidPermissions.Request(AndroidPermissions.HeadsetCamera);
             _count = 0; _failures = 0;
             _nextShotAt = Time.unscaledTime + 1f;
             _endsAt = Time.unscaledTime + seconds;
             _running = true;
-            TelemetryLogger.Info("FrameCapture", "started: " + seconds + " s, every " + _every + " s, " + _size + " px, into " + _dir);
+            TelemetryLogger.Info("FrameCapture", "started" + (_label.Length > 0 ? " [" + _label + "]" : "") + ": " + seconds + " s, every " + _every + " s, " + _size + " px, into " + _dir);
+            return true;
         }
 
         void Tick()
@@ -120,7 +149,7 @@ namespace Chorewars.Diagnostics
                 var p = _head != null ? _head.position : Vector3.zero;
                 var r = _head != null ? _head.rotation : Quaternion.identity;
                 var line = new StringBuilder();
-                line.Append("{\"file\":\"").Append(name).Append("\",\"t\":").Append(Time.realtimeSinceStartup.ToString("0.00", CultureInfo.InvariantCulture))
+                line.Append("{\"label\":\"").Append(_label).Append("\",\"file\":\"").Append(name).Append("\",\"t\":").Append(Time.realtimeSinceStartup.ToString("0.00", CultureInfo.InvariantCulture))
                     .Append(",\"w\":").Append(dims.x).Append(",\"h\":").Append(dims.y)
                     .Append(",\"pos\":[").Append(F(p.x)).Append(',').Append(F(p.y)).Append(',').Append(F(p.z)).Append(']')
                     .Append(",\"rot\":[").Append(F(r.x)).Append(',').Append(F(r.y)).Append(',').Append(F(r.z)).Append(',').Append(F(r.w)).Append("]}\n");

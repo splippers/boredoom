@@ -11,6 +11,7 @@ namespace Chorewars.Dollhouse
     public sealed class HandOutlines : MonoBehaviour
     {
         GameObject _left, _right;
+        Material _glove;
         Transform _space;
         float _nextTry;
 
@@ -22,6 +23,26 @@ namespace Chorewars.Dollhouse
             var go = new GameObject(nameof(HandOutlines));
             DontDestroyOnLoad(go);
             go.AddComponent<HandOutlines>();
+        }
+
+        void OnEnable() => GloveStyle.Changed += ApplyColour;
+        void OnDisable() => GloveStyle.Changed -= ApplyColour;
+
+        void ApplyColour()
+        {
+            if (_glove == null)
+            {
+                var shader = Shader.Find("Chorewars/GloveShaded");
+                if (shader == null) { TelemetryLogger.Warn("HandOutlines", "glove shader missing; keeping the default hand material."); return; }
+                _glove = new Material(shader);
+            }
+            _glove.color = GloveStyle.Tint(GloveStyle.Current);
+            foreach (var hand in new[] { _left, _right })
+            {
+                if (hand == null) continue;
+                foreach (var renderer in hand.GetComponentsInChildren<Renderer>(true))
+                    if (renderer is SkinnedMeshRenderer || renderer is MeshRenderer) renderer.sharedMaterial = _glove;
+            }
         }
 
         void Update()
@@ -37,6 +58,7 @@ namespace Chorewars.Dollhouse
             _space = space;
             _left = Spawn(_left, "HandVisual/Prefabs/Left Hand Tracking");
             _right = Spawn(_right, "HandVisual/Prefabs/Right Hand Tracking");
+            ApplyColour();
         }
 
         GameObject Spawn(GameObject existing, string path)

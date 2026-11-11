@@ -17,11 +17,25 @@ namespace Chorewars.UI
         private RectTransform _canvas;
         private UnityEngine.UI.Button _continue;
         private UnityEngine.UI.Text _muteText;
+        private readonly UnityEngine.UI.Button[] _gloveSwatches = new UnityEngine.UI.Button[4];
         private bool _transitioning;
         private bool _paused;
         private bool _playbackStarted;
         private readonly Chorewars.HandsFree.GazePanelPlacement _placement =
             new Chorewars.HandsFree.GazePanelPlacement { Anchored = true };
+
+        private void RefreshGloveSwatches()
+        {
+            for (int i = 0; i < _gloveSwatches.Length; i++)
+            {
+                if (_gloveSwatches[i] == null) continue;
+                bool chosen = Chorewars.Dollhouse.GloveStyle.All[i] == Chorewars.Dollhouse.GloveStyle.Current;
+                _gloveSwatches[i].transform.localScale = Vector3.one * (chosen ? 1.18f : 1f);
+                var text = _gloveSwatches[i].GetComponentInChildren<UnityEngine.UI.Text>();
+                text.fontStyle = chosen ? FontStyle.Bold : FontStyle.Normal;
+            }
+        }
+        private void OnDestroy() => Chorewars.Dollhouse.GloveStyle.Changed -= RefreshGloveSwatches;
 
         public bool IsMuted => _audio != null && _audio.mute;
         public bool IsTransitioning => _transitioning;
@@ -39,7 +53,7 @@ namespace Chorewars.UI
         private IEnumerator Start()
         {
             while ((_camera = Camera.main) == null) yield return null;
-            _canvas = CleanMenu.CreateCanvas(transform, _camera, new Vector2(640f, 780f));
+            _canvas = CleanMenu.CreateCanvas(transform, _camera, new Vector2(640f, 940f));
             CleanMenu.Background(_canvas);
             if (_logo != null)
             {
@@ -47,14 +61,28 @@ namespace Chorewars.UI
                 graphic.transform.SetParent(_canvas, false);
                 float ratio = (float)_logo.width / Mathf.Max(1, _logo.height);
                 var size = ratio >= 1f ? new Vector2(520f, 520f / ratio) : new Vector2(520f * ratio, 520f);
-                CleanMenu.Place(graphic.GetComponent<RectTransform>(), new Vector2(0f, 70f), size);
+                CleanMenu.Place(graphic.GetComponent<RectTransform>(), new Vector2(0f, 135f), size);
                 var image = graphic.GetComponent<UnityEngine.UI.RawImage>();
                 image.texture = _logo;
                 image.raycastTarget = false;
             }
-            CleanMenu.Text(_canvas, "Welcome", "Welcome to BoreDOOM!", new Vector2(0f, -230f), new Vector2(580f, 54f), 30);
-            _continue = CleanMenu.Button(_canvas, "Continue", "CONTINUE", new Vector2(-150f, -325f), new Vector2(280f, 76f), Continue);
-            var mute = CleanMenu.Button(_canvas, "Mute", "MUTE", new Vector2(150f, -325f), new Vector2(280f, 76f), ToggleMute);
+            CleanMenu.Text(_canvas, "Welcome", "Welcome to BoreDOOM!", new Vector2(0f, -170f), new Vector2(580f, 54f), 30);
+            CleanMenu.Text(_canvas, "GloveLabel", "Pick your glove colour", new Vector2(0f, -232f), new Vector2(580f, 40f), 24);
+            for (int i = 0; i < Chorewars.Dollhouse.GloveStyle.All.Length; i++)
+            {
+                var colour = Chorewars.Dollhouse.GloveStyle.All[i];
+                var swatch = CleanMenu.Button(_canvas, "Glove" + colour, Chorewars.Dollhouse.GloveStyle.Label(colour), new Vector2(-225f + 150f * i, -298f), new Vector2(140f, 64f), () => Chorewars.Dollhouse.GloveStyle.Set(colour));
+                var tint = Chorewars.Dollhouse.GloveStyle.Tint(colour);
+                swatch.targetGraphic.color = tint;
+                var label = swatch.GetComponentInChildren<UnityEngine.UI.Text>();
+                label.fontSize = 20;
+                label.color = colour == Chorewars.Dollhouse.GloveColour.Black ? Color.white : new Color(0.1f, 0.1f, 0.12f);
+                _gloveSwatches[i] = swatch;
+            }
+            Chorewars.Dollhouse.GloveStyle.Changed += RefreshGloveSwatches;
+            RefreshGloveSwatches();
+            _continue = CleanMenu.Button(_canvas, "Continue", "CONTINUE", new Vector2(-150f, -400f), new Vector2(280f, 76f), Continue);
+            var mute = CleanMenu.Button(_canvas, "Mute", "MUTE", new Vector2(150f, -400f), new Vector2(280f, 76f), ToggleMute);
             _muteText = mute.GetComponentInChildren<UnityEngine.UI.Text>();
             StartCoroutine(PlayIntroMusic());
             TelemetryLogger.Info("CleanIntro", "Intro ready: selected logo/music; no Claudia or custom scan flow.");
